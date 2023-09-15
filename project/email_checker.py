@@ -12,3 +12,8 @@ def check_email(email):
         check_smtp=True,  # поставил True для более точной проверки
         smtp_debug=False)
     return result
+
+
+"""
+В следующих версиях здесь будет добавлена рассылка писем с кодом подтверждения. 
+"""
