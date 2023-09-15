@@ -48,3 +48,180 @@
 
 
 - **show_leaderboard** (r: "/users/leaderboard"). Принимает json запрос с типом лидерборда, который вернется в ответе: **graph** (вернет ссылку на расположение файла с графиком. Используется библиотека matplotlib. График в виде столбчатой диаграммы) или **list** (также в запросе будет нужен формат сортировки (аналогичный get_user_posts). Возвращает json со всеми пользователями, отсортированными по количеству реакций на постах и количеству постов)
+
+### usage examples
+
+- **Создание пользователя:**
+`POST /users/create`
+###### request:
+```
+{
+  "first_name": "string",
+  "last_name": "string",
+  "email": "string"
+}
+```
+###### response:
+```
+{
+  "id": "number",
+  "first_name": "string",
+  "last_name": "string",
+  "email": "string",
+  "total_reactions": "number",
+  "posts": []
+}
+```
+
+- **Получение данных о конкретном пользователе**
+`GET /users/<user_id>`
+###### response:
+```
+{
+  "id": "number",
+  "first_name": "string",
+  "last_name": "string",
+  "email": "string",
+  "total_reactions": "number",
+  "posts": [
+    "number",
+    ...
+  ]
+}
+```
+
+- **Создание поста** 
+`POST /posts/create`
+
+###### request:
+```
+{
+  "author_id": "number",
+  "text": "string"
+}
+```
+
+###### response:
+```
+{
+  "id": "number",
+  "author_id": "number",
+  "text": "string",
+  "reactions": [
+  	"string",
+    ...
+  ] 
+}
+```
+
+- **Получение данных по определенному посту** 
+`GET /posts/<post_id>`
+
+###### response:
+```
+{
+  "id": "number",
+  "author_id": "number",
+  "text": "string",
+  "reactions": [
+  	"string",
+    ...
+  ] 
+}
+```
+
+- **Поставить реакцию посту** 
+`POST /posts/<post_id>/reaction`
+
+###### request:
+```
+{
+  "reaction": "string"
+}
+```
+
+###### response
+```
+{}
+```
+
+- **Получение всех постов пользователя, отсортированных по количеству реакций** 
+`GET /users/<user_id>/posts`
+
+`asc` обозначет `ascending` (по возрастанию)<br>
+`desc` обозначет `descending` (по убыванию)
+
+###### request:
+```
+{
+  "sort": "asc/desc"
+}
+```
+
+###### response:
+```
+{
+	"posts": [
+    	{
+  			"id": "number",
+  			"author_id": "string",
+  			"text": "string",
+  			"reactions": [
+  				"string",
+    			...
+  			] 
+  		},
+        {
+        	...
+        }
+    ]
+}
+```
+
+- **Получение всех пользователей, отсортированных по количеству реакций** 
+`GET /users/leaderboard`
+
+`asc` обозначет `ascending` (по возрастанию)<br>
+`desc` обозначет `descending` (по убыванию)
+
+###### request:
+```
+{
+  "type": "list",
+  "sort": "asc/desc"
+}
+```
+
+###### response:
+```
+{
+	"users": [
+    	{
+          "id": "number",
+          "first_name": "string",
+          "last_name": "string",
+          "email": "string",
+          "total_reactions": "number"
+		},
+        {
+        	...
+        }
+    ]
+}
+```
+
+- **Получение графика пользователей по количеству реакций** 
+`GET /users/leaderboard` (указывать тип сортировки здесь не требуется)
+
+
+###### request:
+```
+{
+  "type": "graph",
+}
+```
+
+###### response:
+```
+<img src="leaderboard.png">
+```
