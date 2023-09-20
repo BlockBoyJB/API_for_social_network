@@ -85,7 +85,7 @@ def create_post():
 def get_post(post_id):
     post = post_storage.get_post(post_id)
     if post is False:
-        return {"error": f"post with id {post_id} does not exist"}, 400
+        return {"error": f"post with id {post_id} does not exist"}, 404
 
     else:
         return post.show_post(), 200
@@ -118,11 +118,11 @@ def get_user_posts(user_id):
 
         # проверяем, что пользователь существует
         if storage.get_user(user_id=user_id) is False:
-            return {"error": f"user with id {user_id} does not exist"}, 400
+            return {"error": f"user with id {user_id} does not exist"}, 404
 
         user_posts = post_storage.get_all_users_posts(user_id=user_id)
         if user_posts is False:
-            return {"error": "no posts"}, 400
+            return {"error": "no posts"}, 404
 
         else:
             condition = True if (sort == "desc") else False
@@ -185,14 +185,14 @@ def delete_post(post_id):
 
         user = storage.get_user(author_id)
         if post_storage.delete_post(post_id) is True and user.remove_post(post_id) is True:
-            return {"message": "post deleted successeasfasaSf"}, 202
+            return {"message": "post deleted successfully"}, 202
 
         else:
-            return {"error": "missig data"}, 400
+            return {"error": "post or user does not exist"}, 404
 
     except KeyError:
         return {"error": "author_id does not specified"}, 400
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()

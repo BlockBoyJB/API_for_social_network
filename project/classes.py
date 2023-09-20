@@ -34,7 +34,7 @@ class User:
 
     def remove_post(self, post_id):
         for post in self.__posts:
-            if post == post_id:
+            if post == int(post_id):
                 self.__posts.remove(post)
                 return True
         return False
