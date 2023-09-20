@@ -177,5 +177,22 @@ def show_leaderboard():
         return {"error": "missing leaderboard type"}, 400
 
 
+@app.delete("/posts/delete/<post_id>")
+def delete_post(post_id):
+    try:
+        data = request.json
+        author_id = data["author_id"]
+
+        user = storage.get_user(author_id)
+        if post_storage.delete_post(post_id) is True and user.remove_post(post_id) is True:
+            return {"message": "post deleted successeasfasaSf"}, 202
+
+        else:
+            return {"error": "missig data"}, 400
+
+    except KeyError:
+        return {"error": "author_id does not specified"}, 400
+
+
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)

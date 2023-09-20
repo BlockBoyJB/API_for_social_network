@@ -32,6 +32,13 @@ class User:
     def get_user_id(self):
         return self.__id
 
+    def remove_post(self, post_id):
+        for post in self.__posts:
+            if post == post_id:
+                self.__posts.remove(post)
+                return True
+        return False
+
     # переопределил методы для удобной сортировки
     def __lt__(self, other):
         # сначала сравниваем по количеству реакций на постах
@@ -148,6 +155,13 @@ class PostStorage:
         for post in self.__storage:
             if post.get_id() == int(post_id):
                 return post
+        return False
+
+    def delete_post(self, post_id):
+        for post in self.__storage:
+            if post.get_id() == int(post_id):
+                self.__storage.remove(post)
+                return True
         return False
 
     def get_all_users_posts(self, user_id):
