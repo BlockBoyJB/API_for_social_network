@@ -65,6 +65,8 @@ def create_post():
         post_id = len(post_storage) + 1
 
         user = storage.get_user(author_id)
+        if user is False:
+            return {"error": f"user with id {author_id} does not exist"}, 404
         user.add_post(post_id)
 
         new_post = Post(id_number=post_id, author_id=author_id, text=text)
@@ -103,7 +105,7 @@ def put_reaction(post_id):
 
         user = storage.get_user(post.get_author_id())
         user.add_reaction()
-        return {}, 200
+        return {}, 201
 
     except KeyError:
         return {"error": "reaction does not specified"}, 400
