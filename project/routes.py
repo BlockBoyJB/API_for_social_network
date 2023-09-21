@@ -1,7 +1,7 @@
 from flask import Flask, request
 import matplotlib.pyplot as plt
 from classes import UserStorage, User, Post, PostStorage
-from email_checker import check_email
+from checker import check_email, check_username
 
 app = Flask(__name__)
 
@@ -17,22 +17,26 @@ def initialization_user():
         first_name = data["first_name"]
         last_name = data["last_name"]
         email = data["email"]
+        username = data["username"]
 
-        # проверка почты на корректность.
-        # Следующим шагом будет отправка письма с кодом подтверждения почты, а также новый маршрут для верификации.
-        # Также введу такие понятия как подтвержденная/неподтвержденная почта.
-        # Пользователи без подтвержденной почты не будут иметь возможности создавать посты
-        if not(check_email(email=email)):
-            return {"error": "incorrect email"}, 400
+        if app.debug is False:
+            # проверка почты на корректность.
+            if not(check_email(email=email)):
+                return {"error": "incorrect email"}, 400
 
-        if email in storage.get_all_emails():  # проверяем, что указанной почты нет среди зарегистрированных
-            return {"error": "current email is busy. Please, enter another one"}, 400
+            if email in storage.get_all_emails():  # проверяем, что указанной почты нет среди зарегистрированных
+                return {"error": "current email is busy. Please, enter another one"}, 400
 
+            if not(check_username(username=username)):
+                return {"error": "incorrect username"}, 400
+
+        # создаем запись о пользователе
         storage.add_email(email=email)
-        id_number = len(storage) + 1
-        storage.add(User(first_name=first_name, last_name=last_name, email=email, id_number=id_number))
+        storage.add_username(username=username)
+        storage.add(User(first_name=first_name, last_name=last_name, email=email, username=username))
+
         return {
-            "id": id_number,
+            "username": username,
             "first_name": first_name,
             "last_name": last_name,
             "email": email,
@@ -45,11 +49,11 @@ def initialization_user():
 
 
 # получение информации о пользователе
-@app.get("/users/<user_id>")
-def get_user(user_id):
-    user = storage.get_user(user_id=user_id)
+@app.get("/users/<username>")
+def get_user(username):
+    user = storage.get_user(username=username)
     if user is False:
-        return {"error": f"user with id {user_id} does not exist"}, 400
+        return {"error": f"user with username {username} does not exist"}, 400
 
     else:
         return user.show_user(), 200
@@ -60,20 +64,20 @@ def get_user(user_id):
 def create_post():
     try:
         data = request.json
-        author_id = data["author_id"]
+        author_username = data["author_username"]
         text = data["text"]
-        post_id = len(post_storage) + 1
+        post_id = len(post_storage) + 1  # TODO: заменить на title
 
-        user = storage.get_user(author_id)
+        user = storage.get_user(author_username)
         if user is False:
-            return {"error": f"user with id {author_id} does not exist"}, 404
+            return {"error": f"user with id {author_username} does not exist"}, 404
         user.add_post(post_id)
 
-        new_post = Post(id_number=post_id, author_id=author_id, text=text)
+        new_post = Post(id_number=post_id, author_username=author_username, text=text)
         post_storage.add(new_post)
         return {
             "id": post_id,
-            "author_id": author_id,
+            "author_username": author_username,
             "text": text,
             "reactions": []
         }, 201
@@ -83,7 +87,7 @@ def create_post():
 
 
 # получение информации о посте
-@app.get("/posts/<post_id>")
+@app.get("/posts/<post_id>")  # TODO: switch to title
 def get_post(post_id):
     post = post_storage.get_post(post_id)
     if post is False:
@@ -94,7 +98,7 @@ def get_post(post_id):
 
 
 # создание реакции к посту
-@app.post("/posts/<post_id>/reaction")
+@app.post("/posts/<post_id>/reaction")  # TODO: switch to title
 def put_reaction(post_id):
     try:
         data = request.json
@@ -103,7 +107,7 @@ def put_reaction(post_id):
         post = post_storage.get_post(post_id)
         post.set_reaction(reaction=reaction)
 
-        user = storage.get_user(post.get_author_id())
+        user = storage.get_user(post.get_author_username())
         user.add_reaction()
         return {}, 201
 
@@ -112,17 +116,17 @@ def put_reaction(post_id):
 
 
 # получение информации о всех постах пользователя
-@app.get("/users/<user_id>/posts")
-def get_user_posts(user_id):
+@app.get("/users/<username>/posts")
+def get_user_posts(username):
     try:
         data = request.json
         sort = data["sort"]
 
         # проверяем, что пользователь существует
-        if storage.get_user(user_id=user_id) is False:
-            return {"error": f"user with id {user_id} does not exist"}, 404
+        if storage.get_user(username=username) is False:
+            return {"error": f"user with id {username} does not exist"}, 404
 
-        user_posts = post_storage.get_all_users_posts(user_id=user_id)
+        user_posts = post_storage.get_all_users_posts(username=username)
         if user_posts is False:
             return {"error": "no posts"}, 404
 
@@ -164,10 +168,10 @@ def show_leaderboard():
 
         else:
 
-            users_first_names = [user.get_first_name() for user in storage.get_all_users()]
+            usersnames = [user.get_username() for user in storage.get_all_users()]
             users_total_reactions = [user.get_reactions() for user in storage.get_all_users()]
 
-            plt.bar(users_first_names, users_total_reactions)
+            plt.bar(usersnames, users_total_reactions)
             plt.title("Leaderboard")
             plt.xlabel("Users")
             plt.ylabel("Total reactions")
@@ -183,9 +187,9 @@ def show_leaderboard():
 def delete_post(post_id):
     try:
         data = request.json
-        author_id = data["author_id"]
+        author_username = data["author_username"]
 
-        user = storage.get_user(author_id)
+        user = storage.get_user(author_username)
         if post_storage.delete_post(post_id) is True and user.remove_post(post_id) is True:
             return {"message": "post deleted successfully"}, 202
 
@@ -197,4 +201,4 @@ def delete_post(post_id):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)

@@ -17,3 +17,13 @@ def check_email(email):
 """
 В следующих версиях здесь будет добавлена рассылка писем с кодом подтверждения. 
 """
+
+
+def check_username(username: str):
+    correct_symbols = "abcdefghijklmnopqrstuvwxyz0123456789_"
+    if len(username.split()) == 1 and username[0] == "@" and username[1] != "_":
+        for sym in username[1:]:
+            if sym not in correct_symbols:
+                return False
+        return True
+    return False
