@@ -64,22 +64,25 @@ def get_user(username):
 def create_post():
     try:
         data = request.json
-        author_username = data["author_username"]
+        username = data["username"]
+        title = data["title"]
         text = data["text"]
-        post_id = len(post_storage) + 1  # TODO: заменить на title
 
-        user = storage.get_user(author_username)
+        user: User = storage.get_user(username)
+
         if user is False:
-            return {"error": f"user with id {author_username} does not exist"}, 404
-        user.add_post(post_id)
+            return {"error": f"user with id {username} does not exist"}, 404
 
-        new_post = Post(id_number=post_id, author_username=author_username, text=text)
-        post_storage.add(new_post)
+        user.add_title_post(title=title)
+        new_post = Post(title=title, author_username=username, text=text)
+        post_storage.add(entry=new_post)
+        user.add_post(post=new_post)
         return {
-            "id": post_id,
-            "author_username": author_username,
+            "title": title,
+            "username": username,
             "text": text,
-            "reactions": []
+            "reactions": [],
+            "ID": new_post.get_id(),
         }, 201
 
     except KeyError:
@@ -87,29 +90,65 @@ def create_post():
 
 
 # получение информации о посте
-@app.get("/posts/<post_id>")  # TODO: switch to title
-def get_post(post_id):
-    post = post_storage.get_post(post_id)
-    if post is False:
-        return {"error": f"post with id {post_id} does not exist"}, 404
+@app.get("/posts/post")
+def get_post():
+    data = request.json
 
-    else:
-        return post.show_post(), 200
+    if "post_id" in data:  # получение поста через уникальный id
+        post_id = data["post_id"]
+        post = post_storage.get_post(post_id=post_id)
+        if post is False:
+            return {"error": f"post with id {post_id} does not exist"}, 404
+
+        else:
+            return post.show_post(), 200
+
+    else:  # либо через имя пользователя и название
+        try:
+            username = data["username"]
+            title = data["title"]
+
+            user = storage.get_user(username=username)
+            post = user.get_post(title=title)
+            if post is False:
+                return {"error": "post or username does not exist"}, 404
+            return post.show_post(), 200
+
+        except KeyError:
+            return {"error": "missing data"}, 400
 
 
 # создание реакции к посту
-@app.post("/posts/<post_id>/reaction")  # TODO: switch to title
-def put_reaction(post_id):
+@app.post("/posts/post/reaction")  # TODO: switch to title
+def put_reaction():
     try:
         data = request.json
         reaction = data["reaction"]
 
-        post = post_storage.get_post(post_id)
-        post.set_reaction(reaction=reaction)
+        if "post_id" in data:
+            post_id = data["post_id"]
 
-        user = storage.get_user(post.get_author_username())
-        user.add_reaction()
-        return {}, 201
+            post = post_storage.get_post(post_id)
+            post.set_reaction(reaction=reaction)
+
+            user = storage.get_user(post.get_author_username())
+            user.add_reaction()
+            return {}, 201
+
+        else:
+            try:
+                username = data["username"]
+                title = data["title"]
+
+                user = storage.get_user(username=username)
+                user.add_reaction()
+
+                post = user.get_post(title=title)
+                post.set_reaction(reaction=reaction)
+                return {}, 201
+
+            except KeyError:
+                return {"error": "username or post title is not specified"}, 400
 
     except KeyError:
         return {"error": "reaction does not specified"}, 400
@@ -183,21 +222,40 @@ def show_leaderboard():
         return {"error": "missing leaderboard type"}, 400
 
 
-@app.delete("/posts/delete/<post_id>")
-def delete_post(post_id):
-    try:
-        data = request.json
-        author_username = data["author_username"]
+@app.delete("/posts/post/delete")
+def delete_post():
+    data = request.json
+    if "post_id" in data:
+        post_id = data["post_id"]
 
-        user = storage.get_user(author_username)
-        if post_storage.delete_post(post_id) is True and user.remove_post(post_id) is True:
+        post = post_storage.get_post(post_id=post_id)
+        if post is False:
+            return {"error": f"post with id {post_id} does not exist"}, 404
+        title = post.get_title()
+        username = post.get_author_username()
+        user = storage.get_user(username=username)
+        if user.remove_post(title=title) is True and post_storage.delete_post(title=title) is True:
             return {"message": "post deleted successfully"}, 202
 
         else:
-            return {"error": "post or user does not exist"}, 404
+            return {"error": "something is wrong"}
 
-    except KeyError:
-        return {"error": "author_id does not specified"}, 400
+    else:
+        try:
+
+            username = data["username"]
+            title = data["title"]
+
+            user: User = storage.get_user(username)
+
+            if user.remove_post(title=title) is True and post_storage.delete_post(title=title) is True:
+                return {"message": "post deleted successfully"}, 202
+
+            else:
+                return {"error": "post or user does not exist"}, 404
+
+        except KeyError:
+            return {"error": "username or title does not specified"}, 400
 
 
 if __name__ == '__main__':

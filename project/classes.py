@@ -9,21 +9,32 @@ class User:
 
         self.__username = username
         self.__total_reactions: int = 0
-        self.__posts: list = []
+        self.__post_titles: list[str] = []
+        self.__posts: list[Post] = []
 
-        self.__id = uuid.uuid4()
+        self.__id = str(uuid.uuid4())
 
     def show_user(self):
-        return {"username": self.__username,
-                "first_name": self.__first_name,
-                "last_name": self.__last_name,
-                "email": self.__email,
-                "total_reactions": self.__total_reactions,
-                "posts": self.__posts,
-                }
+        return {
+            "username": self.__username,
+            "first_name": self.__first_name,
+            "last_name": self.__last_name,
+            "email": self.__email,
+            "total_reactions": self.__total_reactions,
+            "posts": self.__post_titles,
+        }
+
+    def add_title_post(self, title):
+        self.__post_titles.append(title)
 
     def add_post(self, post):
         self.__posts.append(post)
+
+    def get_post(self, title):
+        for post in self.__posts:
+            if post.get_title() == title:
+                return post
+        return False
 
     def add_reaction(self):
         self.__total_reactions += 1
@@ -37,11 +48,14 @@ class User:
     def get_username(self):
         return self.__username
 
-    def remove_post(self, post_id) -> bool:
-        for post in self.__posts:
-            if post == int(post_id):
-                self.__posts.remove(post)
-                return True
+    def remove_post(self, title):
+        for post_title in self.__post_titles:
+            if post_title == title:
+                self.__post_titles.remove(post_title)
+                for post in self.__posts:
+                    if post.get_title() == title:
+                        self.__posts.remove(post)
+                        return True
         return False
 
     # переопределил методы для удобной сортировки
@@ -52,12 +66,12 @@ class User:
         if self.__total_reactions > other.__total_reactions:
             return False
         # потом по общему количеству постов
-        if len(self.__posts) < len(other.__posts):
+        if len(self.__post_titles) < len(other.__post_titles):
             return True
         return False
 
     def __eq__(self, other):
-        return self.__total_reactions == other.__total_reactions and len(self.__posts) == len(other.__posts)
+        return self.__total_reactions == other.__total_reactions and len(self.__post_titles) == len(other.__post_titles)
 
     def __ne__(self, other):
         return not (self == other)
@@ -70,18 +84,20 @@ class User:
 
 
 class Post:
-    def __init__(self, id_number, author_username: str, text: str):
-        self.__postname = id_number
+    def __init__(self, title: str, author_username: str, text: str):
+        self.__title = title
         self.__author_username = author_username
         self.__text = text
+
         self.__reactions: list[str] = []
+        self.__post_id = str(uuid.uuid4())
 
     def add_reaction(self, reaction):
         self.__reactions.append(reaction)
 
     def show_post(self):
         return {
-            "id": self.__postname,
+            "title": self.__title,
             "author_username": self.__author_username,
             "text": self.__text,
             "reactions": self.__reactions
@@ -90,8 +106,11 @@ class Post:
     def get_author_username(self):
         return self.__author_username
 
+    def get_title(self):
+        return self.__title
+
     def get_id(self):
-        return self.__postname
+        return self.__post_id
 
     def get_reactions(self):
         return self.__reactions
@@ -163,20 +182,22 @@ class UserStorage:
 
 class PostStorage:
     def __init__(self):
-        self.__storage = []
+        self.__storage: list[Post] = []
 
     def add(self, entry):
         self.__storage.append(entry)
 
+    # Логика для взаимодействия через уникальный id.
+    # Для поиск поста через пользователя и название осуществляется через методы пользователя
     def get_post(self, post_id):
         for post in self.__storage:
-            if post.get_id() == int(post_id):
+            if post.get_id() == post_id:
                 return post
         return False
 
-    def delete_post(self, post_id):
+    def delete_post(self, title):
         for post in self.__storage:
-            if post.get_id() == int(post_id):
+            if post.get_title() == title:
                 self.__storage.remove(post)
                 return True
         return False
