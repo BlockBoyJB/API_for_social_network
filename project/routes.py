@@ -32,6 +32,9 @@ def initialization_user():
             if not(check_username(username=username)):
                 return {"error": "incorrect username"}, 400
 
+            if username in storage.get_all_usernames():
+                return {"error": "current username is busy. Please, enter another one"}, 400
+
         # создаем запись о пользователе
         storage.add_email(email=email)
         storage.add_username(username=username)
