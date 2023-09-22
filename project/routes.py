@@ -2,11 +2,13 @@ from flask import Flask, request
 import matplotlib.pyplot as plt
 from classes import UserStorage, User, Post, PostStorage
 from checker import check_email, check_username
+from email_checker import EmailVerification
 
 app = Flask(__name__)
 
 storage = UserStorage()
 post_storage = PostStorage()
+verification_service = EmailVerification()
 
 
 # создание пользователя
