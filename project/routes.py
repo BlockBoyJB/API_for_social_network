@@ -111,10 +111,17 @@ def get_post():
             title = data["title"]
 
             user = storage.get_user(username=username)
-            post = user.get_post(title=title)
-            if post is False:
-                return {"error": "post or username does not exist"}, 404
-            return post.show_post(), 200
+            if user is not False:
+                post = user.get_post(title=title)
+                if post is False:
+                    return {"error": f"post with title {title} does not exist"}, 404
+                return post.show_post(), 200
+
+            else:
+                post = post_storage.get_post_with_usename(username=username)
+                if post is False:
+                    return {"error": f"post with title {title} does not exist"}, 404
+                return post.show_post()
 
         except KeyError:
             return {"error": "missing data"}, 400
@@ -258,6 +265,13 @@ def delete_post():
 
         except KeyError:
             return {"error": "username or title does not specified"}, 400
+
+
+@app.delete("/users/<username>/delete")
+def delete_user(username):
+    if storage.delete_user(username=username) is True:
+        return {"message": f"user with username {username} deleted successfully"}, 202
+    return {"error": f"user with username {username} does not exist"}, 404
 
 
 if __name__ == '__main__':

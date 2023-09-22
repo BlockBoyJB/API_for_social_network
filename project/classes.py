@@ -162,6 +162,13 @@ class UserStorage:
                 return user
         return False
 
+    def delete_user(self, username):
+        for user in self.__storage:
+            if user.get_username() == username:
+                self.__storage.remove(user)
+                return True
+        return False
+
     def get_all_users(self):
         return self.__storage
 
@@ -192,6 +199,12 @@ class PostStorage:
     def get_post(self, post_id):
         for post in self.__storage:
             if post.get_id() == post_id:
+                return post
+        return False
+
+    def get_post_with_usename(self, username):
+        for post in self.__storage:
+            if post.get_author_username() == username:
                 return post
         return False
 
