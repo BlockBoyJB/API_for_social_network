@@ -80,7 +80,10 @@ def create_post():
         user: User = storage.get_user(username)
 
         if user is False:
-            return {"error": f"user with id {username} does not exist"}, 404
+            return {"error": f"user with username {username} does not exist"}, 404
+
+        if user.get_status() is False:
+            return {"error": f"user with username {username} does not confirmed"}, 403
 
         user.add_title_post(title=title)
         new_post = Post(title=title, author_username=username, text=text)
