@@ -6,11 +6,12 @@ class User:
         self.__first_name = first_name
         self.__last_name = last_name
         self.__email = email
-
         self.__username = username
+
         self.__total_reactions: int = 0
         self.__post_titles: list[str] = []
         self.__posts: list[Post] = []
+        self.__confirmed_status: bool = False
 
         self.__id = str(uuid.uuid4())
 
@@ -22,6 +23,7 @@ class User:
             "email": self.__email,
             "total_reactions": self.__total_reactions,
             "posts": self.__post_titles,
+            "verified_status": self.__confirmed_status,
         }
 
     def add_title_post(self, title):
@@ -47,6 +49,12 @@ class User:
 
     def get_username(self):
         return self.__username
+
+    def get_status(self):
+        return self.__confirmed_status
+
+    def verify_user(self):
+        self.__confirmed_status = True
 
     def remove_post(self, title):
         for post_title in self.__post_titles:

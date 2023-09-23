@@ -35,6 +35,8 @@ def initialization_user():
             if username in storage.get_all_usernames():
                 return {"error": "current username is busy. Please, enter another one"}, 400
 
+            verification_service.send_verification_msg(email=email, username=username)
+
         # создаем запись о пользователе
         storage.add_email(email=email)
         storage.add_username(username=username)
@@ -47,6 +49,8 @@ def initialization_user():
             "email": email,
             "total_reactions": 0,
             "posts": [],
+            "status": "unconfirmed",
+            "message": "check_your_email",
         }, 201
 
     except KeyError:
@@ -131,7 +135,7 @@ def get_post():
 
 
 # создание реакции к посту
-@app.post("/posts/post/reaction")  # TODO: switch to title
+@app.post("/posts/post/reaction")
 def put_reaction():
     try:
         data = request.json
@@ -277,5 +281,27 @@ def delete_user(username):
     return {"error": f"user with username {username} does not exist"}, 404
 
 
+@app.post("/users/<username>/verify")
+def verify_user(username):
+    codes = verification_service.get_codes()
+    try:
+        data = request.json
+        if not"code" in data:
+            return {"error": "verification code does not specified"}, 400
+
+        code = data["code"]
+        user_code = codes[username]
+        if user_code == code:
+            user = storage.get_user(username=username)
+            user.verify_user()
+            return {"message": f"user with username {username} successfully confirmed"}, 201
+
+        else:
+            return {"error": "incorrect verification code"}, 400
+
+    except KeyError:
+        return {"error": f"user with username {username} does not exist"}, 404
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
