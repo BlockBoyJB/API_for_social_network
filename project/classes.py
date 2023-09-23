@@ -1,21 +1,22 @@
 class User:
-    def __init__(self, first_name, last_name, email, id_number):
+    def __init__(self, first_name: str, last_name: str, email: str, id_number: str):
         self.__first_name = first_name
         self.__last_name = last_name
         self.__email = email
-
         self.__id = id_number
-        self.__total_reactions = 0
-        self.__posts = []
+
+        self.__total_reactions: int = 0
+        self.__posts: list[str] = []
 
     def show_user(self):
-        return {"id": self.__id,
-                "first_name": self.__first_name,
-                "last_name": self.__last_name,
-                "email": self.__email,
-                "total_reactions": self.__total_reactions,
-                "posts": self.__posts,
-                }
+        return {
+            "id": self.__id,
+            "first_name": self.__first_name,
+            "last_name": self.__last_name,
+            "email": self.__email,
+            "total_reactions": self.__total_reactions,
+            "posts": self.__posts,
+        }
 
     def add_post(self, post):
         self.__posts.append(post)
@@ -48,31 +49,32 @@ class User:
         return self.__total_reactions == other.__total_reactions and len(self.__posts) == len(other.__posts)
 
     def __ne__(self, other):
-        return not(self == other)
+        return not (self == other)
 
     def __gt__(self, other):
-        return not(self < other) and self != other
+        return not (self < other) and self != other
 
     def __ge__(self, other):
-        return not(self < other)
+        return not (self < other)
 
 
 class Post:
-    def __init__(self, id_number, author_id, text):
+    def __init__(self, id_number: str, author_id: str, text: str):
         self.__id = id_number
         self.__author_id = author_id
         self.__text = text
-        self.__reactions = []
+
+        self.__reactions: list[str] = []
 
     def add_reaction(self, reaction):
         self.__reactions.append(reaction)
 
     def show_post(self):
         return {
-            "id": self.__id,
+            "post_id": self.__id,
             "author_id": self.__author_id,
             "text": self.__text,
-            "reactions": self.__reactions
+            "reactions": self.__reactions,
         }
 
     def get_author_id(self):
@@ -97,23 +99,23 @@ class Post:
         return len(self.__reactions) == len(other.__reactions)
 
     def __ne__(self, other):
-        return not(self == other)
+        return not (self == other)
 
     def __le__(self, other):
-        return not(self > other)
+        return not (self > other)
 
     def __gt__(self, other):
-        return not(self < other) and self != other
+        return not (self < other) and self != other
 
     def __ge__(self, other):
-        return not(self < other)
+        return not (self < other)
 
 
 # решил разграничить 2 класса для хранения постов и пользователей
 class UserStorage:
     def __init__(self):
-        self.__storage = []
-        self.__email_storage = []  # заведем отдельный массив для email для удобной проверки при создании пользователя
+        self.__storage: list[User] = []
+        self.__email_storage: list[str] = []  # отдельный массив для email для проверки при создании пользователя
 
     def add(self, entry):
         self.__storage.append(entry)
@@ -126,7 +128,7 @@ class UserStorage:
 
     def get_user(self, user_id):
         for user in self.__storage:
-            if user.get_user_id() == int(user_id):
+            if user.get_user_id() == user_id:
                 return user
         return False
 
@@ -139,14 +141,14 @@ class UserStorage:
 
 class PostStorage:
     def __init__(self):
-        self.__storage = []
+        self.__storage: list[Post] = []
 
     def add(self, entry):
         self.__storage.append(entry)
 
     def get_post(self, post_id):
         for post in self.__storage:
-            if post.get_id() == int(post_id):
+            if post.get_id() == post_id:
                 return post
         return False
 
@@ -154,7 +156,7 @@ class PostStorage:
         user_posts = []
 
         for post in self.__storage:
-            if int(post.get_author_id()) == int(user_id):
+            if int(post.get_author_id()) == user_id:
                 user_posts.append(post)
 
         if len(user_posts) != 0:

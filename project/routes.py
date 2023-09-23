@@ -2,6 +2,7 @@ from flask import Flask, request
 import matplotlib.pyplot as plt
 from classes import UserStorage, User, Post, PostStorage
 from email_checker import check_email
+import uuid
 
 app = Flask(__name__)
 
@@ -29,7 +30,7 @@ def initialization_user():
             return {"error": "current email is busy. Please, enter another one"}, 400
 
         storage.add_email(email=email)
-        id_number = len(storage) + 1
+        id_number = str(uuid.uuid4())
         storage.add(User(first_name=first_name, last_name=last_name, email=email, id_number=id_number))
         return {
             "id": id_number,
@@ -62,7 +63,7 @@ def create_post():
         data = request.json
         author_id = data["author_id"]
         text = data["text"]
-        post_id = len(post_storage) + 1
+        post_id = str(uuid.uuid4())
 
         user = storage.get_user(author_id)
         user.add_post(post_id)
@@ -70,10 +71,10 @@ def create_post():
         new_post = Post(id_number=post_id, author_id=author_id, text=text)
         post_storage.add(new_post)
         return {
-            "id": post_id,
+            "post_id": post_id,
             "author_id": author_id,
             "text": text,
-            "reactions": []
+            "reactions": [],
         }, 201
 
     except KeyError:
