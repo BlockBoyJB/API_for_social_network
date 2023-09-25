@@ -1,10 +1,9 @@
-from flask import Flask, request
+from src.modules import app
+from flask import request
 import matplotlib.pyplot as plt
-from classes import UserStorage, User, Post, PostStorage
-from checker import check_email, check_username
-from email_checker import EmailVerification
-
-app = Flask(__name__)
+from src.modules.classes import UserStorage, User, Post, PostStorage
+from src.modules.checker import check_email, check_username
+from src.modules.email_checker import EmailVerification
 
 storage = UserStorage()
 post_storage = PostStorage()

@@ -1,4 +1,4 @@
-from verification_email import login, password
+from src.modules.verification_email import login, password
 import uuid
 import smtplib
 
