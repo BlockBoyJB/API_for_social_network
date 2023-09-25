@@ -14,10 +14,15 @@ def add_user_db(first_name: str, last_name: str, email: str, username: str,
     connection.close()
 
 
-def get_user_db(username: str):
+def get_user_db(**kwargs):
     connection = data.connect("src/database/app_db.db")
     cursor = connection.cursor()
-    cursor.execute("SELECT * FROM users WHERE username=?", (username,))
+    if "user_id" in kwargs:
+        cursor.execute("SELECT * FROM users WHERE user_uuid=?", (kwargs["user_id"],))
+
+    else:
+        cursor.execute("SELECT * FROM users WHERE username=?", (kwargs["username"],))
+
     user = cursor.fetchone()
     connection.close()
     return user
@@ -42,13 +47,20 @@ def add_post_db(title: str, author_username: str, text: str, post_id: str):
     connection.close()
 
 
-def get_post_db(username: str, title: str):
+def get_post_db(**kwargs):
     connection = data.connect("src/database/app_db.db")
     cursor = connection.cursor()
-    cursor.execute("SELECT * FROM posts WHERE author_username=? and title=?", (username, title))
-    user = cursor.fetchone()
+    if "post_id" in kwargs:
+        cursor.execute("SELECT * FROM posts WHERE post_id=?", (kwargs["post_id"],))
+
+    else:
+        title = kwargs["title"]
+        username = kwargs["username"]
+        cursor.execute("SELECT * FROM posts WHERE author_username=? and title=?", (username, title,))
+
+    post = cursor.fetchone()
     connection.close()
-    return user
+    return post
 
 
 def add_reaction_db(reaction: str, username: str, title: str):
@@ -59,6 +71,19 @@ def add_reaction_db(reaction: str, username: str, title: str):
 
     connection.commit()
     connection.close()
+
+
+def _add_reaction_db(reaction: str, **kwargs):
+    connection = data.connect("src/database/app_db.db")
+    cursor = connection.cursor()
+    if "post_id" in kwargs:
+        cursor.execute("INSERT INTO reactions values (?, ?)", (reaction, kwargs["post_id"],))
+
+    else:
+        username = kwargs["username"]
+        title = kwargs["title"]
+        post_id = cursor.execute("SELECT post_id FROM posts WHERE author_username=? and title=?", (username, title,))
+        cursor.execute("INSERT INTO reactions values (?, ?)", (reaction, post_id,))
 
 
 def get_reactions_post_db(username: str, title: str):

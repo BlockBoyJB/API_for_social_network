@@ -2,7 +2,7 @@ from src.modules import app
 from flask import request
 import matplotlib.pyplot as plt
 from src.modules.checker import check_email, check_username
-from src.database.db import check_email_in_db, add_user_db, get_user_db, add_post_db
+from src.database.db import check_email_in_db, add_user_db, get_user_db, add_post_db, get_post_db
 from uuid import uuid4
 
 
@@ -49,11 +49,12 @@ def initialization_user():
         return {"error": "missing data"}, 400
 
 
-@app.get("/users/<username>")
-def get_user(username):
-    user = get_user_db(username=username)
+@app.get("/users/user")
+def get_user():
+    data = request.json
+    user = get_user_db(**data)
     if len(user) == 0:
-        return {"error": f"user with username {username} does not exist"}, 400
+        return {"error": f"user with specified username does not exist"}, 400
 
     first_name, last_name, email, username, total_reations, status, user_uuid = user
     return {
@@ -95,4 +96,21 @@ def create_post():
         }, 201
 
     except KeyError:
-        return {}
+        return {"error": "missing data"}, 400
+
+
+@app.get("/posts/post")
+def get_post():
+    data = request.json
+
+    post = get_post_db(**data)
+    if len(post) == 0:
+        return {"error": "no post"}, 404
+
+    title, username, text, post_id = post
+    return {
+        "title": title,
+        "author_username": username,
+        "post_id": post_id,
+        "text": text,
+    }, 200
