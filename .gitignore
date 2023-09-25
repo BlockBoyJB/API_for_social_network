@@ -161,3 +161,4 @@ cython_debug/
 
 # other
 verification_email.py
+app_db.db
