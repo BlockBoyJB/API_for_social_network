@@ -1,4 +1,5 @@
 import uuid
+from src.database.db import add_user_db, add_post_db
 
 
 class User:
@@ -14,6 +15,7 @@ class User:
         self.__confirmed_status: bool = False
 
         self.__id = str(uuid.uuid4())
+        add_user_db(first_name, last_name, email, username, self.__total_reactions, self.__confirmed_status, self.__id)
 
     def show_user(self):
         return {
@@ -99,6 +101,7 @@ class Post:
 
         self.__reactions: list[str] = []
         self.__post_id = str(uuid.uuid4())
+        add_post_db(title, author_username, text, self.__post_id)
 
     def add_reaction(self, reaction):
         self.__reactions.append(reaction)

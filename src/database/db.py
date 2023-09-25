@@ -6,7 +6,7 @@ def add_user_db(first_name: str, last_name: str, email: str, username: str,
 
     user = (first_name, last_name, email, username, total_reactions, status, user_uuid)
 
-    connection = data.connect("app_db.db")
+    connection = data.connect("src/database/app_db.db")
     cursor = connection.cursor()
     cursor.execute("INSERT INTO users values (?, ?, ?, ?, ?, ?, ?)", user)
 
@@ -15,17 +15,26 @@ def add_user_db(first_name: str, last_name: str, email: str, username: str,
 
 
 def get_user_db(username: str):
-    connection = data.connect("app_db.db")
+    connection = data.connect("src/database/app_db.db")
     cursor = connection.cursor()
     cursor.execute("SELECT * FROM users WHERE username=?", (username,))
-    user = cursor.fetchall()
+    user = cursor.fetchone()
     connection.close()
     return user
 
 
+def check_email_in_db(email: str):
+    connection = data.connect("src/database/app_db.db")
+    cursor = connection.cursor()
+    cursor.execute("SELECT EXISTS(SELECT email FROM users WHERE email=?)", (email, ))
+    if str(cursor.fetchone())[1:2] == '1':
+        return True
+    return False
+
+
 def add_post_db(title: str, author_username: str, text: str, post_id: str):
     post = (title, author_username, text, post_id)
-    connection = data.connect("app_db.db")
+    connection = data.connect("src/database/app_db.db")
     cursor = connection.cursor()
     cursor.execute("INSERT INTO posts values (?, ?, ?, ?)", post)
 
@@ -34,16 +43,16 @@ def add_post_db(title: str, author_username: str, text: str, post_id: str):
 
 
 def get_post_db(username: str, title: str):
-    connection = data.connect("app_db.db")
+    connection = data.connect("src/database/app_db.db")
     cursor = connection.cursor()
     cursor.execute("SELECT * FROM posts WHERE author_username=? and title=?", (username, title))
-    user = cursor.fetchall()
+    user = cursor.fetchone()
     connection.close()
     return user
 
 
 def add_reaction_db(reaction: str, username: str, title: str):
-    connection = data.connect("app_db.db")
+    connection = data.connect("src/database/app_db.db")
     cursor = connection.cursor()
     post_id = cursor.execute("SELECT post_id FROM posts WHERE title=? and author_username=?", (title, username))
     cursor.execute("INSERT INTO reactions values (?, ?)", (reaction, post_id))
@@ -53,7 +62,7 @@ def add_reaction_db(reaction: str, username: str, title: str):
 
 
 def get_reactions_post_db(username: str, title: str):
-    connection = data.connect("app_db.db")
+    connection = data.connect("src/database/app_db.db")
     cursor = connection.cursor()
     post_id = cursor.execute("SELECT post_id FROM posts WHERE author_username=? and title=?", (username, title))
 
@@ -63,7 +72,6 @@ def get_reactions_post_db(username: str, title: str):
     return reactions
 
 
-# add_user_db('vasya', 'pupkin', 'asasf', '@vasek', 0, False, 'asgasfsfasf')
+# add_user_db('vasya', 'pupkin', 'vasyagood', '@vasek', 0, False, 'asgasfsfasf')
 # print(get_user_db('@vasek'))
-# add_post_db("new title", "@vasek", "second text", 'gassfaf123123')
-print(get_post_db("@vasek", "new title"))
+# add_post_db("new title", "@vasek", "second text", 'gasssfasff123123')
