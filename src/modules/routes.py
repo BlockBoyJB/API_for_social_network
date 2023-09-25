@@ -1,10 +1,10 @@
-from flask import Flask, request
+from src.modules import app
+from flask import request
 import matplotlib.pyplot as plt
-from classes import UserStorage, User, Post, PostStorage
-from email_checker import check_email
+from src.modules.classes import UserStorage, User, Post, PostStorage
+from src.modules.email_checker import check_email
 import uuid
 
-app = Flask(__name__)
 
 storage = UserStorage()
 post_storage = PostStorage()
@@ -176,7 +176,3 @@ def show_leaderboard():
 
     except KeyError:
         return {"error": "missing leaderboard type"}, 400
-
-
-if __name__ == '__main__':
-    app.run()
