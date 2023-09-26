@@ -63,40 +63,81 @@ def get_post_db(**kwargs):
     return post
 
 
-def add_reaction_db(reaction: str, username: str, title: str):
+def add_reaction_db(**kwargs):
     connection = data.connect("src/database/app_db.db")
     cursor = connection.cursor()
-    post_id = cursor.execute("SELECT post_id FROM posts WHERE title=? and author_username=?", (title, username))
-    cursor.execute("INSERT INTO reactions values (?, ?)", (reaction, post_id))
-
-    connection.commit()
-    connection.close()
-
-
-def _add_reaction_db(reaction: str, **kwargs):
-    connection = data.connect("src/database/app_db.db")
-    cursor = connection.cursor()
+    reaction = kwargs["reaction"]
     if "post_id" in kwargs:
         cursor.execute("INSERT INTO reactions values (?, ?)", (reaction, kwargs["post_id"],))
 
     else:
         username = kwargs["username"]
         title = kwargs["title"]
-        post_id = cursor.execute("SELECT post_id FROM posts WHERE author_username=? and title=?", (username, title,))
+        cursor.execute("SELECT post_id FROM posts WHERE author_username=? and title=?", (username, title,))
+        post_id = str(cursor.fetchone())[2:-3]
         cursor.execute("INSERT INTO reactions values (?, ?)", (reaction, post_id,))
 
+    connection.commit()
+    connection.close()
 
-def get_reactions_post_db(username: str, title: str):
+
+def get_reactions_post_db(**kwargs):
     connection = data.connect("src/database/app_db.db")
     cursor = connection.cursor()
-    post_id = cursor.execute("SELECT post_id FROM posts WHERE author_username=? and title=?", (username, title))
+    if "post_id" in kwargs:
+        cursor.execute("SELECT name FROM reactions WHERE post_id=?", (kwargs["post_id"],))
 
-    cursor.execute("SELECT name FROM reactions WHERE post_id=?", (post_id,))
+    else:
+        username = kwargs["username"]
+        title = kwargs["title"]
+        cursor.execute("SELECT post_id FROM posts WHERE author_username=? and title=?", (username, title,))
+        post_id = str(cursor.fetchone())[2:-3]
+        cursor.execute("SELECT name FROM reactions WHERE post_id=?", (post_id, ))
+
     reactions = cursor.fetchall()
     connection.close()
     return reactions
 
 
-# add_user_db('vasya', 'pupkin', 'vasyagood', '@vasek', 0, False, 'asgasfsfasf')
-# print(get_user_db('@vasek'))
-# add_post_db("new title", "@vasek", "second text", 'gasssfasff123123')
+# предупреждаю, дальше изложен гавнокод. Думать над логикой нормальной сортировки мне не хочеца
+def get_all_user_posts_db(**kwargs):
+    connection = data.connect("src/database/app_db.db")
+    cursor = connection.cursor()
+    if "user_id" in kwargs:
+        cursor.execute("SELECT username FROM users WHERE user_uuid=?", (kwargs["user_id"], ))
+        username = str(cursor.fetchone())[2:-3]
+
+    else:
+        username = kwargs["username"]
+
+    sort = kwargs["sort"]
+    condition = True if (sort == "desc") else False
+    cursor.execute("SELECT * FROM posts WHERE author_username=?", (username,))
+    posts = cursor.fetchall()
+    all_post = []
+    for post in posts:
+        title, author_username, text, post_id = post
+        cursor.execute("SELECT name FROM reactions WHERE post_id=?", (post_id, ))
+        reactions = cursor.fetchall()
+        all_post.append((len(reactions), title, author_username, text, post_id))
+
+    all_post.sort(reverse=condition)
+
+    response = []
+
+    for post in all_post:
+        r, title, author_username, text, post_id = post
+        cursor.execute("SELECT name FROM reactions WHERE post_id=?", (post_id,))
+        post_reactions = []
+        reactions = cursor.fetchall()
+        for reaction in reactions:
+            post_reactions.append(str(reaction)[2:-3])
+        response.append({
+            "username": author_username,
+            "title": title,
+            "post_id": post_id,
+            "text": text,
+            "reactions": post_reactions
+        })
+
+    return response

@@ -2,7 +2,7 @@ from src.modules import app
 from flask import request
 import matplotlib.pyplot as plt
 from src.modules.checker import check_email, check_username
-from src.database.db import check_email_in_db, add_user_db, get_user_db, add_post_db, get_post_db
+import src.database.db as db
 from uuid import uuid4
 
 
@@ -20,10 +20,10 @@ def initialization_user():
             if not (check_email(email=email)):
                 return {"error": "incorrect email"}, 400
 
-            if not (check_email_in_db(email=email)):
+            if not (db.check_email_in_db(email=email)):
                 return {"error": "current email is busy. Please, enter another one"}, 400
 
-            if len(get_user_db(username=username)) != 0:
+            if len(db.get_user_db(username=username)) != 0:
                 return {"error": "current username is busy. Please, enter another one"}, 400
 
             if not (check_username(username=username)):
@@ -32,7 +32,7 @@ def initialization_user():
             # TODO добавить отправку письма с верификацией + реализовать вместе с бд
 
         user_uuid = str(uuid4())
-        add_user_db(first_name, last_name, email, username, 0, True, user_uuid)
+        db.add_user_db(first_name, last_name, email, username, 0, True, user_uuid)
         return {
             "username": username,
             "first_name": first_name,
@@ -52,7 +52,7 @@ def initialization_user():
 @app.get("/users/user")
 def get_user():
     data = request.json
-    user = get_user_db(**data)
+    user = db.get_user_db(**data)
     if len(user) == 0:
         return {"error": f"user with specified username does not exist"}, 400
 
@@ -76,7 +76,7 @@ def create_post():
         title = data["title"]
         text = data["text"]
 
-        user = get_user_db(username=username)
+        user = db.get_user_db(username=username)
 
         if len(user) == 0:
             return {"error": f"user with username {username} does not exist"}, 404
@@ -86,7 +86,7 @@ def create_post():
             return {"error": f"user with username {username} does not confirmed"}, 403
 
         post_id = str(uuid4())
-        add_post_db(title=title, author_username=username, text=text, post_id=post_id)
+        db.add_post_db(title=title, author_username=username, text=text, post_id=post_id)
 
         return {
             "title": title,
@@ -101,16 +101,52 @@ def create_post():
 
 @app.get("/posts/post")
 def get_post():
-    data = request.json
+    try:
+        data = request.json
 
-    post = get_post_db(**data)
-    if len(post) == 0:
-        return {"error": "no post"}, 404
+        post = db.get_post_db(**data)
+        if len(post) == 0:
+            return {"error": "no post"}, 404
 
-    title, username, text, post_id = post
-    return {
-        "title": title,
-        "author_username": username,
-        "post_id": post_id,
-        "text": text,
-    }, 200
+        title, username, text, post_id = post
+        return {
+            "title": title,
+            "author_username": username,
+            "post_id": post_id,
+            "text": text,
+        }, 200
+
+    except KeyError:
+        return {"error": "missing username or title or post_id does not specified"}, 400
+
+
+@app.post("/posts/post/reaction")
+def put_reaction():
+    try:
+        data = request.json
+        if not ("reaction" in data):
+            return {"error": "reaction does not specified"}, 400
+
+        db.add_reaction_db(**data)
+
+        return {}, 201
+
+    except KeyError:
+        return {"error": "missing username or title or post_id does not specified"}, 400
+
+
+@app.get("/users/user/posts")
+def get_user_posts():
+    try:
+        data = request.json
+        if not ("sort" in data):
+            return {"error": "sorting type does not specified"}
+
+        posts = db.get_all_user_posts_db(**data)
+        if len(posts) == 0:
+            return {"error": "no post"}, 404
+
+        return {"posts": posts}, 200
+
+    except KeyError:
+        return {"error": "missing username or title or post_id does not specified"}, 400
