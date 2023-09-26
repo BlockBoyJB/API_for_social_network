@@ -33,6 +33,19 @@ def get_user_db(**kwargs):
     return user
 
 
+def delete_user_db(**kwargs):
+    connection = data.connect(DB_ADRESS)
+    cursor = connection.cursor()
+    if "user_id" in kwargs:
+        cursor.execute("DELETE FROM users WHERE user_uuid=?", (kwargs["user_id"],))
+
+    else:
+        cursor.execute("DELETE FROM users WHERE username=?", (kwargs["username"],))
+
+    connection.commit()
+    connection.close()
+
+
 def get_usernames_db(sort):
     connection = data.connect(DB_ADRESS)
     cursor = connection.cursor()
@@ -44,6 +57,8 @@ def get_usernames_db(sort):
     users = []
     for user in cursor.fetchall():
         users.append(str(user)[2:-3])
+
+    connection.close()
 
     return users
 
@@ -60,6 +75,8 @@ def get_total_reactions_db(sort):
     for reaction in cursor.fetchall():
         reactions.append(int(str(reaction)[1:-2]))
 
+    connection.close()
+
     return reactions
 
 
@@ -67,6 +84,7 @@ def check_email_in_db(email: str):
     connection = data.connect(DB_ADRESS)
     cursor = connection.cursor()
     cursor.execute("SELECT EXISTS(SELECT email FROM users WHERE email=?)", (email, ))
+    connection.close()
     if cursor.fetchone()[0] == 1:
         return True
     return False
@@ -96,6 +114,21 @@ def get_post_db(**kwargs):
     post = cursor.fetchone()
     connection.close()
     return post
+
+
+def delete_post_db(**kwargs):
+    connection = data.connect(DB_ADRESS)
+    cursor = connection.cursor()
+    if "post_id" in kwargs:
+        cursor.execute("DELETE FROM posts WHERE post_id=?", (kwargs["post_id"],))
+
+    else:
+        title = kwargs["title"]
+        username = kwargs["username"]
+        cursor.execute("DELETE FROM posts WHERE title=? and author_username=?", (title, username,))
+
+    connection.commit()
+    connection.close()
 
 
 def add_reaction_db(**kwargs):
@@ -178,5 +211,7 @@ def get_all_user_posts_db(**kwargs):
             "text": text,
             "reactions": post_reactions
         })
+
+    connection.close()
 
     return response

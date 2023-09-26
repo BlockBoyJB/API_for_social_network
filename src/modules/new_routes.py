@@ -192,3 +192,25 @@ def show_leaderboard():
 
     except KeyError:
         return {"error": "missing leaderboard type"}, 400
+
+
+@app.delete("/posts/post/delete")
+def delete_post():
+    try:
+        data = request.json
+        db.delete_post_db(**data)
+        return {"message": "post deleted successfully"}, 202
+
+    except KeyError:
+        return {"error": "username and title or post_id does not specified"}, 400
+
+
+@app.delete("/users/user/delete")
+def delete_user():
+    try:
+        data = request.json
+        db.delete_user_db(**data)
+        return {"message": "user deleted successfully"}, 202
+
+    except KeyError:
+        return {"error": "username and title or post_id does not specified"}, 400
