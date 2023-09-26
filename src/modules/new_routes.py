@@ -150,3 +150,45 @@ def get_user_posts():
 
     except KeyError:
         return {"error": "missing username or title or post_id does not specified"}, 400
+
+
+@app.get("/users/leaderboard")
+def show_leaderboard():
+    try:
+        data = request.json
+        lb_type = data["type"]
+        if lb_type == "list":
+            try:
+                sort = data["sort"]
+
+                all_users = db.get_usernames_db(sort=sort)
+                total_reactions = db.get_total_reactions_db(sort=sort)
+
+                leaderboard = []
+                for i in range(1, len(all_users)+1):
+                    leaderboard.append(f"{i} - {all_users[i - 1]}, reactions - {total_reactions[i - 1]}")
+
+                return {"users": leaderboard}, 200
+
+            except KeyError:
+                return {"error": "sorting type does not exist"}, 400
+
+        else:
+            try:
+                sort = data["sort"]
+                usernames = db.get_usernames_db(sort=sort)
+                total_reactions = db.get_total_reactions_db(sort=sort)
+
+                plt.bar(usernames, total_reactions)
+                plt.title("Leaderboard")
+                plt.xlabel("Users")
+                plt.ylabel("Total reactions")
+
+                plt.savefig("leaderboard.png")
+                return "<img src='leaderboard.png'>"
+
+            except KeyError:
+                return {"error": "sorting type does not exist"}, 400
+
+    except KeyError:
+        return {"error": "missing leaderboard type"}, 400
