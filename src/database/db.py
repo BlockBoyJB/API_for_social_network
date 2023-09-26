@@ -84,10 +84,14 @@ def check_email_in_db(email: str):
     connection = data.connect(DB_ADRESS)
     cursor = connection.cursor()
     cursor.execute("SELECT EXISTS(SELECT email FROM users WHERE email=?)", (email, ))
-    connection.close()
+
     if cursor.fetchone()[0] == 1:
+        connection.close()
+        return False
+
+    else:
+        connection.close()
         return True
-    return False
 
 
 def add_post_db(title: str, author_username: str, text: str, post_id: str):
@@ -215,3 +219,29 @@ def get_all_user_posts_db(**kwargs):
     connection.close()
 
     return response
+
+
+def add_verification_db(username: str, code: str):
+    connection = data.connect(DB_ADRESS)
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO verification_codes VALUES (?, ?)", (username, code,))
+
+    connection.commit()
+    connection.close()
+
+
+def check_verify_db(username: str, code: str):
+    connection = data.connect(DB_ADRESS)
+    cursor = connection.cursor()
+    cursor.execute("SELECT code FROM verification_codes WHERE username=?", (username,))
+    correct_code = cursor.fetchone()[0]
+    if code == correct_code:
+        cursor.execute("UPDATE users SET status=? WHERE username=?", (1, username,))
+        cursor.execute("DELETE FROM verification_codes WHERE username=?", (username,))
+        connection.commit()
+        connection.close()
+        return True
+
+    else:
+        connection.close()
+        return False

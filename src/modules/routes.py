@@ -2,6 +2,7 @@ from src.modules import app
 from flask import request
 import matplotlib.pyplot as plt
 from src.modules.checker import check_email, check_username
+from src.modules.email_checker import send_verification_msg
 import src.database.db as db
 from uuid import uuid4
 
@@ -23,16 +24,16 @@ def initialization_user():
             if not (db.check_email_in_db(email=email)):
                 return {"error": "current email is busy. Please, enter another one"}, 400
 
-            if len(db.get_user_db(username=username)) != 0:
+            if db.get_user_db(username=username) is not None:
                 return {"error": "current username is busy. Please, enter another one"}, 400
 
             if not (check_username(username=username)):
                 return {"error": "incorrect username"}, 400
 
-            # TODO добавить отправку письма с верификацией + реализовать вместе с бд
+            send_verification_msg(email=email, username=username)
 
         user_uuid = str(uuid4())
-        db.add_user_db(first_name, last_name, email, username, 0, True, user_uuid)
+        db.add_user_db(first_name, last_name, email, username, 0, False, user_uuid)
         return {
             "username": username,
             "first_name": first_name,
@@ -214,3 +215,22 @@ def delete_user():
 
     except KeyError:
         return {"error": "username and title or post_id does not specified"}, 400
+
+
+@app.post("/users/user/verify")
+def verify_user():
+    try:
+        data = request.json
+        username = data["username"]
+        if not"code" in data:
+            return {"error": "verification code does not specified"}, 400
+
+        code = data["code"]
+        if db.check_verify_db(username=username, code=code) is True:
+            return {"message": f"user with username {username} successfully confirmed"}, 201
+
+        else:
+            return {"error": "incorrect verification code"}, 400
+
+    except KeyError:
+        return {"error": "username does not specified"}, 400
