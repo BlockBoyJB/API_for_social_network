@@ -86,6 +86,9 @@ def create_post():
         if int(status) == 0:
             return {"error": f"user with username {username} does not confirmed"}, 403
 
+        if not (db.check_post_db(username=username, title=title)):
+            return {"error": "current title is already exist for the user"}, 400
+
         post_id = str(uuid4())
         db.add_post_db(title=title, author_username=username, text=text, post_id=post_id)
 
@@ -110,11 +113,15 @@ def get_post():
             return {"error": "no post"}, 404
 
         title, username, text, post_id = post
+        reactions = []
+        for reaction in db.get_reactions_post_db(**data):
+            reactions.append(reaction[0])
         return {
             "title": title,
             "author_username": username,
             "post_id": post_id,
             "text": text,
+            "reactions": reactions,
         }, 200
 
     except KeyError:

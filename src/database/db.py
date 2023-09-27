@@ -56,7 +56,7 @@ def get_usernames_db(sort):
 
     users = []
     for user in cursor.fetchall():
-        users.append(str(user)[2:-3])
+        users.append(user[0])
 
     connection.close()
 
@@ -73,7 +73,7 @@ def get_total_reactions_db(sort):
 
     reactions = []
     for reaction in cursor.fetchall():
-        reactions.append(int(str(reaction)[1:-2]))
+        reactions.append(reaction[0])
 
     connection.close()
 
@@ -85,13 +85,11 @@ def check_email_in_db(email: str):
     cursor = connection.cursor()
     cursor.execute("SELECT EXISTS(SELECT email FROM users WHERE email=?)", (email, ))
 
-    if cursor.fetchone()[0] == 1:
-        connection.close()
+    status = cursor.fetchone()[0]
+    connection.close()
+    if status == 1:
         return False
-
-    else:
-        connection.close()
-        return True
+    return True
 
 
 def add_post_db(title: str, author_username: str, text: str, post_id: str):
@@ -133,6 +131,18 @@ def delete_post_db(**kwargs):
 
     connection.commit()
     connection.close()
+
+
+def check_post_db(username: str, title: str):
+    connection = data.connect(DB_ADRESS)
+    cursor = connection.cursor()
+    cursor.execute("SELECT EXISTS(SELECT title FROM posts WHERE author_username=? and title=?)", (username, title,))
+
+    status = cursor.fetchone()[0]
+    connection.close()
+    if status == 1:
+        return False
+    return True
 
 
 def add_reaction_db(**kwargs):
@@ -207,7 +217,7 @@ def get_all_user_posts_db(**kwargs):
         post_reactions = []
         reactions = cursor.fetchall()
         for reaction in reactions:
-            post_reactions.append(str(reaction)[2:-3])
+            post_reactions.append(reaction[0])
         response.append({
             "username": author_username,
             "title": title,
