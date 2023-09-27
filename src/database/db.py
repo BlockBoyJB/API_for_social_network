@@ -1,9 +1,10 @@
+"""
+The logic of interaction with the database
+"""
 import sqlite3 as data
 
 
 DB_ADRESS = "src/database/app_db.db"
-if __name__ == "__main__":  # TODO удалить перед пушем
-    DB_ADRESS = "app_db.db"
 
 
 def add_user_db(first_name: str, last_name: str, email: str, username: str,
@@ -185,7 +186,7 @@ def get_reactions_post_db(**kwargs):
     return reactions
 
 
-# предупреждаю, дальше изложен гавнокод. Думать над логикой нормальной сортировки мне не хочеца
+# I warn you, the following is the shit code. I don't want to think about the logic of normal sorting (=
 def get_all_user_posts_db(**kwargs):
     connection = data.connect(DB_ADRESS)
     cursor = connection.cursor()

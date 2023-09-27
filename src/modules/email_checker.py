@@ -1,3 +1,8 @@
+"""
+The logic of sending a confirmation email to the user
+"""
+# you need to create a file at the specified path, which will contain the login and password from gmail,
+# from which confirmation emails will be sent
 from src.modules.verification_email import LOGIN, PASSWORD
 from src.database.db import add_verification_db
 import uuid

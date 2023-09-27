@@ -1,3 +1,6 @@
+"""
+All routes for user interaction
+"""
 from src.modules import app
 from flask import request
 import matplotlib.pyplot as plt
