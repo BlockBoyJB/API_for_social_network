@@ -1,92 +1,115 @@
-# API_for_social_network v1.0
+# API for social network v2.0
 # Documentation
-###### Используемый фреймворк - flask 2.3.3
 
-#### тз:
-- Создает пользователя (проверяет почту на правильность), который может писать посты, ставить реакции (heart, like, dislike, boom, ...) на посты других пользователей
+#### функционал api:
+- Создает пользователя (проверяет почту на правильность), который может писать посты, ставить реакции (heart, like, dislike, boom, ...) на посты других пользователей.
+Также после создания на указанную почту приходит письмо с кодом подтверждения. Пользователь с неподтвержденной почтой не может создавать посты
 - Выдает данные по конкретному пользователю
+- Удаляет пользователя
 - Создает пост
 - Выдает данные по конкретному посту
+- Удаляет пост
 - Пользователь ставит реакцию на пост
 - Выдает все посты пользователя, отсортированные по количеству реакций
 - Генерирует список пользователей, отсортированный по количеству реакций
 - Генерирует график пользователей по количеству реакций
 
 
-## description of modules
-
-### classes.py
-Модуль содержит 4 основных класса, используемые в работе: 
-- **User и Post**. Содержат схожие методы и атрибуты. Используются для описания одного пользователя/поста соответственно
-- UserStorage и PostStorage. Являются классами-хранилищами для данных пользователя/поста соответственно. БД пока что не реализована (**_Ориентировочно будет готова к версии v2.0_**), поэтому данные хранятся в runtime
-
-### email_checker.py
-Модуль содержит функцию проверки валидности эл. почты - check_email(email). Функция выполняет команды из библиотеки email_validate -> validate()
-
-
-### routes.py
-Модуль является ***основным***. Содержит маршруты запросов и функции, обрабатывающие эти запросы.
-Более подробное описание функций + маршруты:
-
-
-- **initialization_user()** (route: "/users/create"). Создает пользователя, принимает json запрос с данными о новом пользователе. Проверяет почту на корректность + смотрит отсутствие такой же среди зарегестрированных. Возвращает json c полным описанием нового **пользователя**
-
-
-- **get_user(user_id)** (r: "/users/<'user id'>"). Проверяет существование user_id в хранилище, возвращает json c полным описанием пользователя. При отсутствии user_id в хранилище возвращает json с ошибкой
-
-
-- **create_post()** (r: "/posts/create"). Создает пост. Принимает json запрос со следующими данными: **"author_id"** **"text"**. Создает пост, добавляет к профилю автора поста id созданного поста. Возвращает json с полной информацией о новом посте
-
-
-- **get_post(post_id)** (r: "/posts/<'post_id'>"). Проверяет существование post_id  в хранилище и возвращает json полное описание поста в случае наличия post_id или json с ошибкой в случае отсутствия 
-
-
-- **put_reaction(post_id)** (r: "/post/<'post_id'>/reaction"). Ставит реакцию на пост. Принимает json запрос с названием реакции. Далее пытается найти пост с указанным id в хранилище. В случае наличия ставит на пост реакцию (в массив с реакциями класса Post добавляет название реакции). Ничего не возвращает
-
-
-- **get_user_posts(user_id)** (r: "/users/<'user_id'>/posts"). Принимает json с условием сортировки: asc (по возрастанию) или desc (по убыванию). Находит пользователя в хранилище и возвращает все посты, созданные указанным пользователем в порядке, указанном в json запросе
-
-
-- **show_leaderboard** (r: "/users/leaderboard"). Принимает json запрос с типом лидерборда, который вернется в ответе: **graph** (вернет ссылку на расположение файла с графиком. Используется библиотека matplotlib. График в виде столбчатой диаграммы) или **list** (также в запросе будет нужен формат сортировки (аналогичный get_user_posts). Возвращает json со всеми пользователями, отсортированными по количеству реакций на постах и количеству постов)
-
 ### usage examples
 
 - **Создание пользователя:**
 `POST /users/create`
 ###### request:
-```
+```json
 {
-  "first_name": "string",
-  "last_name": "string",
-  "email": "string"
-}
-```
-###### response:
-```
-{
-  "id": "number",
   "first_name": "string",
   "last_name": "string",
   "email": "string",
-  "total_reactions": "number",
-  "posts": []
+  "username": "string"
+}
+```
+###### response:
+```json
+{
+  "username": "string",
+  "first_name": "string",
+  "last_name": "string",
+  "email": "string",
+  "total_reactions": 0,
+  "posts": [],
+  "user_id": "string",
+  "status": "unconfirmed",
+  "message": "check_your_email"
 }
 ```
 
 - **Получение данных о конкретном пользователе**
-`GET /users/<user_id>`
-###### response:
-```
+`GET /users/user`
+
+###### request:
+```json
 {
-  "id": "number",
+  "username": "string"
+}
+```
+or
+```json
+{
+  "user_id": "string"
+}
+```
+
+###### response:
+```json
+{
+  "username": "string",
   "first_name": "string",
   "last_name": "string",
   "email": "string",
   "total_reactions": "number",
-  "posts": [
-    "number",
-    ...
-  ]
+  "status": "number",
+  "uuid": "string"
+}
+```
+
+- **Подтверждение почты пользователя**
+`POST /users/user/verify`
+
+###### request:
+```json
+{
+  "username": "string",
+  "code": "string"
+}
+```
+
+###### response:
+```json
+{
+  "message": "user with username {username} successfully confirmed"
+}
+```
+
+- **Удаление пользователя**
+`DELETE /users/user/delete`
+
+###### request:
+```json
+{
+  "user_id": "string"
+}
+```
+or 
+```json
+{
+  "username": "string"
+}
+```
+
+###### response:
+```json
+{
+  "message": "post deleted successfully"
 }
 ```
 
@@ -94,49 +117,97 @@
 `POST /posts/create`
 
 ###### request:
-```
+```json
 {
-  "author_id": "number",
+  "username": "string",
+  "title": "string",
   "text": "string"
 }
 ```
 
 ###### response:
-```
+```json
 {
-  "id": "number",
-  "author_id": "number",
-  "text": "string",
-  "reactions": [
-  	"string",
-    ...
-  ] 
+  "title": "string",
+  "username": "string",
+  "reactions": [],
+  "text": "string"
 }
 ```
 
 - **Получение данных по определенному посту** 
-`GET /posts/<post_id>`
+`GET /posts/post`
 
-###### response:
-```
+###### request:
+```json
 {
-  "id": "number",
-  "author_id": "number",
-  "text": "string",
-  "reactions": [
-  	"string",
-    ...
-  ] 
+  "username": "string",
+  "title": "string"
+}
+```
+or
+```json
+{
+  "post_id": "string"
 }
 ```
 
-- **Поставить реакцию посту** 
-`POST /posts/<post_id>/reaction`
+###### response:
+```json
+{
+  "title": "string",
+  "author_username": "string",
+  "post_id": "string",
+  "text": "string",
+  "reactions": [
+    "string",
+    "string",
+    "other_reactions..."
+  ]
+}
+```
+
+- **Удаление постов пользователя**
+`DELETE /posts/post/delete`
 
 ###### request:
-```
+```json
 {
-  "reaction": "string"
+  "post_id": "string"
+}
+```
+or
+```json
+{
+  "title": "string",
+  "username": "string"
+}
+```
+
+###### response:
+```json
+{
+  "message": "post deleted successfully"
+}
+```
+
+
+- **Поставить реакцию посту** 
+`POST /posts/post/reaction`
+
+###### request:
+```json
+{
+  "reaction": "string",
+  "username": "string",
+  "title": "string"
+}
+```
+or
+```json
+{
+  "reaction": "string",
+  "post_id": "string"
 }
 ```
 
@@ -146,33 +217,42 @@
 ```
 
 - **Получение всех постов пользователя, отсортированных по количеству реакций** 
-`GET /users/<user_id>/posts`
+`GET /users/user/posts`
 
 `asc` обозначет `ascending` (по возрастанию)<br>
 `desc` обозначет `descending` (по убыванию)
 
 ###### request:
-```
+```json
 {
-  "sort": "asc/desc"
+  "sort": "asc/desc",
+  "username": "string"
+}
+```
+or
+```json
+{
+  "sort": "asc/desc",
+  "user_id": "string"
 }
 ```
 
 ###### response:
-```
+```json
 {
 	"posts": [
     	{
-  			"id": "number",
-  			"author_id": "string",
-  			"text": "string",
+  			"username": "string",
+  			"title": "string",
+  			"post_id": "string",
+            "text": "string",
   			"reactions": [
   				"string",
-    			...
+    			"other_reactions..."
   			] 
   		},
         {
-        	...
+        	"other_posts": "..."
         }
     ]
 }
@@ -185,7 +265,7 @@
 `desc` обозначет `descending` (по убыванию)
 
 ###### request:
-```
+```json
 {
   "type": "list",
   "sort": "asc/desc"
@@ -193,35 +273,28 @@
 ```
 
 ###### response:
-```
+```json
 {
 	"users": [
-    	{
-          "id": "number",
-          "first_name": "string",
-          "last_name": "string",
-          "email": "string",
-          "total_reactions": "number"
-		},
-        {
-        	...
-        }
+    	"1 - {username}, reactions - {num of reactions}",
+        "2 - ..."
     ]
 }
 ```
 
 - **Получение графика пользователей по количеству реакций** 
-`GET /users/leaderboard` (указывать тип сортировки здесь не требуется)
+`GET /users/leaderboard` (также можно указать тип сортировки)
 
 
 ###### request:
-```
+```json
 {
   "type": "graph",
+  "sort": "asc/desc"
 }
 ```
 
 ###### response:
-```
+```html
 <img src="leaderboard.png">
 ```

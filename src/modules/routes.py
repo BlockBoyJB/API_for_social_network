@@ -19,21 +19,19 @@ def initialization_user():
         email = data["email"]
         username = data["username"]
 
-        if app.debug is False:
+        if not (check_email(email=email)):
+            return {"error": "incorrect email"}, 400
 
-            if not (check_email(email=email)):
-                return {"error": "incorrect email"}, 400
+        if not (db.check_email_in_db(email=email)):
+            return {"error": "current email is busy. Please, enter another one"}, 400
 
-            if not (db.check_email_in_db(email=email)):
-                return {"error": "current email is busy. Please, enter another one"}, 400
+        if db.get_user_db(username=username) is not None:
+            return {"error": "current username is busy. Please, enter another one"}, 400
 
-            if db.get_user_db(username=username) is not None:
-                return {"error": "current username is busy. Please, enter another one"}, 400
+        if not (check_username(username=username)):
+            return {"error": "incorrect username"}, 400
 
-            if not (check_username(username=username)):
-                return {"error": "incorrect username"}, 400
-
-            send_verification_msg(email=email, username=username)
+        send_verification_msg(email=email, username=username)
 
         user_uuid = str(uuid4())
         db.add_user_db(first_name, last_name, email, username, 0, False, user_uuid)
