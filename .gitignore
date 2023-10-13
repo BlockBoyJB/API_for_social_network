@@ -163,3 +163,4 @@ cython_debug/
 verification_email.py
 app_db.db
 /src/v2.0
+/migrations/versions

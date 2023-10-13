@@ -1,16 +1,19 @@
-from src.users.models import user
-from sqlalchemy import MetaData, Table, Column, Integer, String, ARRAY, Text, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import DeclarativeMeta
+from sqlalchemy import Column, Integer, String, ARRAY, Text, ForeignKey
 
-metadata = MetaData()
+from src.users.models import User
 
-post = Table(
-    "post",
-    metadata,
-    Column("post_id", Integer, primary_key=True, autoincrement=True),
-    Column("title", String, nullable=False),
-    Column("username", String, nullable=False),
-    Column("post_text", Text, nullable=False),
-    Column("user_uuid", String, ForeignKey(user.c.user_uuid), nullable=False),
-    Column("post_uuid", String, unique=True, nullable=False),
-    Column("reactions", ARRAY(String))
-)
+
+Base: DeclarativeMeta = declarative_base()
+
+
+class Post(Base):
+    __tablename__ = "post"
+    post_id: int = Column(Integer, primary_key=True, autoincrement=True)
+    title: str = Column(String, nullable=False)
+    username: str = Column(String, nullable=False)
+    post_text: str = Column(Text, nullable=False)
+    user_uuid: str = Column(String, ForeignKey(User.user_uuid), nullable=False)
+    post_uuid: str = Column(String, unique=True, nullable=False)
+    reactions: list = Column(ARRAY(String))

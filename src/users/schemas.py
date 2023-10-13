@@ -6,3 +6,8 @@ class UserCreate(BaseModel):
     last_name: str
     username: str
     email: str
+
+
+class UserVerify(BaseModel):
+    username: str
+    verification_code: str

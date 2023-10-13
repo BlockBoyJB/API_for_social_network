@@ -1,16 +1,24 @@
-from sqlalchemy import MetaData, Table, Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import DeclarativeMeta
 
-metadata = MetaData()
+Base: DeclarativeMeta = declarative_base()
 
-user = Table(
-    "user",
-    metadata,
-    Column("user_id", Integer, primary_key=True, autoincrement=True),
-    Column("username", String, unique=True, nullable=False),
-    Column("first_name", String, nullable=False),
-    Column("last_name", String, nullable=False),
-    Column("email", String, nullable=False),
-    Column("total_reactions", Integer, default=0, nullable=False),
-    Column("is_verified", Boolean, default=False, nullable=False),
-    Column("user_uuid", String, unique=True, nullable=False)
-)
+
+class User(Base):
+    __tablename__ = "user"
+    user_id: int = Column(Integer, primary_key=True, autoincrement=True)
+    username: str = Column(String, unique=True, nullable=False)
+    first_name: str = Column(String, nullable=False)
+    last_name: str = Column(String, nullable=False)
+    email: str = Column(String, unique=True, nullable=False)
+    total_reactions: int = Column(Integer, default=0, nullable=False)
+    is_verified: bool = Column(Boolean, default=False, nullable=False)
+    user_uuid: str = Column(String, unique=True, nullable=False)
+
+
+class UserVerifyingCode(Base):
+    __tablename__ = "user_verifying_code"
+    user_id: int = Column(Integer, primary_key=True, autoincrement=True)
+    username: str = Column(String, nullable=False)
+    verifying_uuid: str = Column(String, nullable=False)
