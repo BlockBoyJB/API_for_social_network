@@ -14,6 +14,6 @@ class Post(Base):
     title: str = Column(String, nullable=False)
     username: str = Column(String, nullable=False)
     post_text: str = Column(Text, nullable=False)
-    user_uuid: str = Column(String, ForeignKey(User.user_uuid), nullable=False)
+    user_uuid: str = Column(String, nullable=False)
     post_uuid: str = Column(String, unique=True, nullable=False)
     reactions: list = Column(ARRAY(String))

@@ -11,3 +11,7 @@ class UserCreate(BaseModel):
 class UserVerify(BaseModel):
     username: str
     verification_code: str
+
+
+class UserDelete(BaseModel):
+    username: str

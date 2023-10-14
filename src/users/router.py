@@ -14,7 +14,7 @@ from src.database import get_async_session
 
 from src.posts.models import Post
 
-from src.users.schemas import UserCreate, UserVerify
+from src.users.schemas import UserCreate, UserVerify, UserDelete
 from src.users.models import User, UserVerifyingCode
 from src.users.utilst import send_email
 
@@ -136,3 +136,13 @@ async def get_user_posts(username: str, sort: str, session: AsyncSession = Depen
         })
 
     return JSONResponse(content={f"posts {username}": result}, status_code=HTTPStatus.OK)
+
+
+@router.delete("/user/delete")
+@log
+async def delete_user(user_info: UserDelete, session: AsyncSession = Depends(get_async_session)):
+    query = delete(User).where(User.username == user_info.username)
+    await session.execute(query)
+    await session.commit()
+
+    return JSONResponse(content={"message": "user successfully delete"}, status_code=HTTPStatus.ACCEPTED)

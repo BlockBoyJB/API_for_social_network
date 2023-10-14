@@ -6,12 +6,12 @@ from http import HTTPStatus
 
 from polog import log
 
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_async_session
 
-from src.posts.schemas import PostCreate
+from src.posts.schemas import PostCreate, PostDelete
 from src.users.models import User
 from src.posts.models import Post
 
@@ -21,15 +21,23 @@ router = APIRouter(
 )
 
 
-# TODO: также при создании проверять, что у текущего пользователя не существует поста с таким же заголовком
 @router.post("/post/create")
 @log
 async def add_post(new_post: PostCreate, session: AsyncSession = Depends(get_async_session)):
     query = select(User.user_uuid, User.is_verified).where(User.username == new_post.author_username)
     result = await session.execute(query)
     user_uuid, status = result.all()[0]
+
     if status is False:
         return JSONResponse(content={"message": "user is not confirmed"}, status_code=HTTPStatus.FORBIDDEN)
+
+    query = select(Post.title).where(Post.title == new_post.title)
+    result = await session.execute(query)
+
+    if result.fetchone() is not None:
+        return JSONResponse(content={
+            "message": f"post with title {new_post.title} is already exists in user posts. Please, enter another one"
+        }, status_code=HTTPStatus.BAD_REQUEST)
 
     sqmt = insert(Post).values(
         title=new_post.title,
@@ -62,3 +70,13 @@ async def get_post(title: str, username: str, session: AsyncSession = Depends(ge
         "reactions": [] if result.reactions is None else result.reactions,
     }
     return JSONResponse(content=data, status_code=HTTPStatus.OK)
+
+
+@router.delete("/post/delete")
+@log
+async def delete_post(post_info: PostDelete, session: AsyncSession = Depends(get_async_session)):
+    query = delete(Post).where(Post.title == post_info.title and Post.username == post_info.username)
+    await session.execute(query)
+    await session.commit()
+
+    return JSONResponse(content={"message": "post successfully delete"}, status_code=HTTPStatus.ACCEPTED)
