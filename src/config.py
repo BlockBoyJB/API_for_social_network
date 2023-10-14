@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import os
+from polog import config as cfg, file_writer
 
 load_dotenv()
 
@@ -11,3 +12,5 @@ DB_PASS = os.environ.get("DB_PASS")
 
 EMAIL_SEND_LOGIN = os.environ.get("EMAIL_SEND_LOGIN")
 EMAIL_SEND_PASS = os.environ.get("EMAIL_SEND_PASS")
+
+cfg.add_handlers(file_writer("logfile.log"))

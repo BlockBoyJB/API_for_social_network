@@ -4,6 +4,8 @@ from fastapi.responses import JSONResponse
 
 from http import HTTPStatus
 
+from polog import log
+
 from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +23,7 @@ router = APIRouter(
 
 # TODO: также при создании проверять, что у текущего пользователя не существует поста с таким же заголовком
 @router.post("/post/create")
+@log
 async def add_post(new_post: PostCreate, session: AsyncSession = Depends(get_async_session)):
     query = select(User.user_uuid, User.is_verified).where(User.username == new_post.author_username)
     result = await session.execute(query)
@@ -46,6 +49,7 @@ async def add_post(new_post: PostCreate, session: AsyncSession = Depends(get_asy
 
 
 @router.get("/post")
+@log
 async def get_post(title: str, username: str, session: AsyncSession = Depends(get_async_session)):
     query = select(Post).where(Post.title == title and Post.username == username)
     user_info = await session.execute(query)

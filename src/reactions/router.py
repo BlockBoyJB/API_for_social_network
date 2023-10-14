@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_async_session
 
+from polog import log
+
 from src.reactions.schemas import ReactionCreate
 from src.posts.models import Post
 from src.users.models import User
@@ -19,6 +21,7 @@ router = APIRouter(
 
 
 @router.post("/reaction")
+@log
 async def add_reaction(new_reaction: ReactionCreate, session: AsyncSession = Depends(get_async_session)):
 
     query = select(Post.reactions).where(

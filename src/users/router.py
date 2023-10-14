@@ -4,11 +4,15 @@ from fastapi.responses import JSONResponse
 
 from http import HTTPStatus
 
-from sqlalchemy import select, insert, update, delete
+from polog import log
+
+from sqlalchemy import select, insert, update, delete, func, desc
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_async_session
+
+from src.posts.models import Post
 
 from src.users.schemas import UserCreate, UserVerify
 from src.users.models import User, UserVerifyingCode
@@ -21,6 +25,7 @@ router = APIRouter(
 
 
 @router.post("/user/create")
+@log
 async def add_user(new_user: UserCreate, session: AsyncSession = Depends(get_async_session)):
     user_uuid: str = str(uuid4())
 
@@ -63,6 +68,7 @@ async def add_user(new_user: UserCreate, session: AsyncSession = Depends(get_asy
 
 
 @router.get("/user")
+@log
 async def get_user(username: str, session: AsyncSession = Depends(get_async_session)):
     query = select(User).where(User.username == username)
     user_info = await session.execute(query)
@@ -80,6 +86,7 @@ async def get_user(username: str, session: AsyncSession = Depends(get_async_sess
 
 
 @router.post("/user/verify")
+@log
 async def verify_user(user_info: UserVerify, session: AsyncSession = Depends(get_async_session)):
     query = select(UserVerifyingCode.verifying_uuid).where(UserVerifyingCode.username == user_info.username)
     db_info = await session.execute(query)
@@ -103,3 +110,29 @@ async def verify_user(user_info: UserVerify, session: AsyncSession = Depends(get
     return JSONResponse(content={
         "message": "verification code is incorrect",
     }, status_code=HTTPStatus.UNAUTHORIZED)
+
+
+@router.get("/user/posts")
+@log
+async def get_user_posts(username: str, sort: str, session: AsyncSession = Depends(get_async_session)):
+    if sort == "asc":
+        query = select(Post).where(Post.username == username).order_by(desc(func.cardinality(Post.reactions)))
+
+    else:
+        query = select(Post).where(Post.username == username).order_by(func.cardinality(Post.reactions))
+
+    db_info = await session.execute(query)
+
+    posts = db_info.all()
+    result = []
+    for post in posts:
+        curr_post: Post = post[0]
+        result.append({
+            "title": curr_post.title,
+            "author_username": curr_post.username,
+            "post_uuid": curr_post.post_uuid,
+            "text": curr_post.post_text,
+            "reactions": curr_post.reactions,
+        })
+
+    return JSONResponse(content={f"posts {username}": result}, status_code=HTTPStatus.OK)
