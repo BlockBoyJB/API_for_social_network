@@ -11,6 +11,7 @@ class User(Base):
     username: str = Column(String, unique=True, nullable=False)
     first_name: str = Column(String, nullable=False)
     last_name: str = Column(String, nullable=False)
+    password: str = Column(String, nullable=False)
     email: str = Column(String, unique=True, nullable=False)
     total_reactions: int = Column(Integer, default=0, nullable=False)
     is_verified: bool = Column(Boolean, default=False, nullable=False)

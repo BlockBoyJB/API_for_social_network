@@ -84,7 +84,12 @@ async def get_post(title: str, username: str, session: AsyncSession = Depends(ge
 @router.delete("/post/delete")
 @log
 async def delete_post(post_info: PostDelete, session: AsyncSession = Depends(get_async_session)):
-    query = delete(Post).where(Post.title == post_info.title and Post.username == post_info.username)
+    query = select(User.password).where(User.username == post_info.username)
+    db_info = await session.execute(query)
+    if post_info.password != db_info.fetchone()[0]:
+        return JSONResponse(content={"error": "password is incorrect"}, status_code=HTTPStatus.BAD_REQUEST)
+
+    query = delete(Post).where(Post.title == post_info.title, Post.username == post_info.username)
     await session.execute(query)
     await session.commit()
 

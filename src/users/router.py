@@ -44,6 +44,7 @@ async def add_user(new_user: UserCreate, session: AsyncSession = Depends(get_asy
             username=new_user.username,
             first_name=new_user.first_name,
             last_name=new_user.last_name,
+            password=new_user.password,
             email=new_user.email,
             user_uuid=user_uuid,
         )
@@ -158,8 +159,14 @@ async def get_user_posts(username: str, sort: str, session: AsyncSession = Depen
 @router.delete("/user/delete")
 @log
 async def delete_user(user_info: UserDelete, session: AsyncSession = Depends(get_async_session)):
-    query = delete(User).where(User.username == user_info.username)
-    await session.execute(query)
+    query = select(User.password).where(User.username == user_info.username)
+    db_info = await session.execute(query)
+    correct_pass = db_info.fetchone()[0]
+    if user_info.password != correct_pass:
+        return JSONResponse(content={"error": "password is incorrect"}, status_code=HTTPStatus.BAD_REQUEST)
+
+    stmt = delete(User).where(User.username == user_info.username)
+    await session.execute(stmt)
     await session.commit()
 
     return JSONResponse(content={"message": "user successfully delete"}, status_code=HTTPStatus.ACCEPTED)

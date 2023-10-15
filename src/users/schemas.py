@@ -6,6 +6,7 @@ class UserCreate(BaseModel):
     last_name: str
     username: str
     email: str
+    password: str
 
 
 class UserVerify(BaseModel):
@@ -15,3 +16,4 @@ class UserVerify(BaseModel):
 
 class UserDelete(BaseModel):
     username: str
+    password: str

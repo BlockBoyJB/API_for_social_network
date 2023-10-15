@@ -10,3 +10,4 @@ class PostCreate(BaseModel):
 class PostDelete(BaseModel):
     title: str
     username: str
+    password: str
