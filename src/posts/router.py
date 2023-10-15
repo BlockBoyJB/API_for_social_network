@@ -61,7 +61,7 @@ async def add_post(new_post: PostCreate, session: AsyncSession = Depends(get_asy
 @router.get("/post")
 @log
 async def get_post(title: str, username: str, session: AsyncSession = Depends(get_async_session)):
-    query = select(Post).where(Post.title == title and Post.username == username)
+    query = select(Post).where(Post.title == title, Post.username == username)
     user_info = await session.execute(query)
     result: Post = user_info.fetchone()[0]
 
