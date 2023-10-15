@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database import get_async_session
 
 from src.posts.schemas import PostCreate, PostDelete
+from src.reactions.models import Reaction
+from src.reactions.utils import get_all_reactions
 from src.users.models import User
 from src.posts.models import Post
 
@@ -62,12 +64,19 @@ async def get_post(title: str, username: str, session: AsyncSession = Depends(ge
     query = select(Post).where(Post.title == title and Post.username == username)
     user_info = await session.execute(query)
     result: Post = user_info.fetchone()[0]
+
+    query = select(Reaction.reaction).where(Reaction.post_uuid == result.post_uuid)
+
+    db_info = await session.execute(query)
+
+    reactions = await get_all_reactions(db_info.fetchall())
+
     data = {
         "title": result.title,
         "author_username": result.username,
         "text": result.post_text,
         "post_uuid": result.post_uuid,
-        "reactions": [] if result.reactions is None else result.reactions,
+        "reactions": reactions,
     }
     return JSONResponse(content=data, status_code=HTTPStatus.OK)
 

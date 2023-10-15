@@ -6,7 +6,7 @@ from http import HTTPStatus
 
 from polog import log
 
-from sqlalchemy import select, insert, update, delete, func, desc
+from sqlalchemy import select, insert, update, delete, desc
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,9 +14,12 @@ from src.database import get_async_session
 
 from src.posts.models import Post
 
+from src.reactions.models import Reaction
+from src.reactions.utils import get_all_reactions
+
 from src.users.schemas import UserCreate, UserVerify, UserDelete
 from src.users.models import User, UserVerifyingCode
-from src.users.utilst import send_email
+from src.users.utilst import EmailCfg
 
 router = APIRouter(
     prefix="/users",
@@ -28,6 +31,12 @@ router = APIRouter(
 @log
 async def add_user(new_user: UserCreate, session: AsyncSession = Depends(get_async_session)):
     user_uuid: str = str(uuid4())
+
+    result = await EmailCfg.check_email(new_user.email)
+    if result is False:
+        return JSONResponse(content={
+            "error": f"current email {new_user.email} is incorrect. Enter another one",
+        }, status_code=HTTPStatus.BAD_REQUEST)
 
     try:
 
@@ -54,7 +63,7 @@ async def add_user(new_user: UserCreate, session: AsyncSession = Depends(get_asy
     await session.commit()
 
     # Warning! This function does not work async, so it may slow down the work add_user
-    send_email(uuid=user_uuid, email=new_user.email)
+    EmailCfg.send_email(uuid=user_uuid, email=new_user.email)
 
     return JSONResponse(content={
         "username": new_user.username,
@@ -116,23 +125,31 @@ async def verify_user(user_info: UserVerify, session: AsyncSession = Depends(get
 @log
 async def get_user_posts(username: str, sort: str, session: AsyncSession = Depends(get_async_session)):
     if sort == "asc":
-        query = select(Post).where(Post.username == username).order_by(desc(func.cardinality(Post.reactions)))
+        query = select(Post).where(Post.username == username).order_by(desc(Post.post_reactions))
 
     else:
-        query = select(Post).where(Post.username == username).order_by(func.cardinality(Post.reactions))
+        query = select(Post).where(Post.username == username).order_by(Post.post_reactions)
 
     db_info = await session.execute(query)
 
     posts = db_info.all()
+
     result = []
     for post in posts:
         curr_post: Post = post[0]
+
+        query = select(Reaction.reaction).where(Reaction.post_uuid == curr_post.post_uuid)
+
+        db_info = await session.execute(query)
+
+        curr_reactions = await get_all_reactions(db_info.fetchall())
+
         result.append({
             "title": curr_post.title,
             "author_username": curr_post.username,
             "post_uuid": curr_post.post_uuid,
             "text": curr_post.post_text,
-            "reactions": curr_post.reactions,
+            "reactions": curr_reactions,
         })
 
     return JSONResponse(content={f"posts {username}": result}, status_code=HTTPStatus.OK)

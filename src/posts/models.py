@@ -16,4 +16,4 @@ class Post(Base):
     post_text: str = Column(Text, nullable=False)
     user_uuid: str = Column(String, nullable=False)
     post_uuid: str = Column(String, unique=True, nullable=False)
-    reactions: list = Column(ARRAY(String))
+    post_reactions: int = Column(Integer, default=0, nullable=False)
