@@ -19,7 +19,7 @@ from src.reactions.utils import get_all_reactions
 
 from src.users.schemas import UserCreate, UserVerify, UserDelete
 from src.users.models import User, UserVerifyingCode
-from src.users.utilst import EmailCfg
+from src.users.utilst import EmailCfg, check_username
 
 router = APIRouter(
     prefix="/users",
@@ -31,6 +31,14 @@ router = APIRouter(
 @log
 async def add_user(new_user: UserCreate, session: AsyncSession = Depends(get_async_session)):
     user_uuid: str = str(uuid4())
+
+    result = await check_username(new_user.username)
+    if result is False:
+        return JSONResponse(content={
+            "error": "entered username is incorrect. Enter another one. "
+                     "Username can consist only of lowercase Latin characters and numbers, and also have the _ symbol. "
+                     "The username must necessarily start with @. Maximum allowed length is 15 characters, minimun - 3"
+        }, status_code=HTTPStatus.BAD_REQUEST)
 
     result = await EmailCfg.check_email(new_user.email)
     if result is False:
@@ -63,8 +71,7 @@ async def add_user(new_user: UserCreate, session: AsyncSession = Depends(get_asy
     await session.execute(sqmt)
     await session.commit()
 
-    # Warning! This function does not work async, so it may slow down the work add_user
-    EmailCfg.send_email(uuid=user_uuid, email=new_user.email)
+    await EmailCfg.send_email(uuid=user_uuid, email=new_user.email)
 
     return JSONResponse(content={
         "username": new_user.username,
@@ -82,7 +89,14 @@ async def add_user(new_user: UserCreate, session: AsyncSession = Depends(get_asy
 async def get_user(username: str, session: AsyncSession = Depends(get_async_session)):
     query = select(User).where(User.username == username)
     user_info = await session.execute(query)
-    result: User = user_info.fetchone()[0]
+
+    user = user_info.fetchone()
+    if user is None:
+        return JSONResponse(content={
+            "error": f"user with username {username} does not exists"
+        }, status_code=HTTPStatus.BAD_REQUEST)
+
+    result: User = user[0]
     data = {
         "username": result.username,
         "first_name": result.first_name,
@@ -100,7 +114,14 @@ async def get_user(username: str, session: AsyncSession = Depends(get_async_sess
 async def verify_user(user_info: UserVerify, session: AsyncSession = Depends(get_async_session)):
     query = select(UserVerifyingCode.verifying_uuid).where(UserVerifyingCode.username == user_info.username)
     db_info = await session.execute(query)
-    correct_uuid = db_info.fetchone()[0]
+
+    user_uuid = db_info.fetchone()
+    if user_uuid is None:
+        return JSONResponse(content={
+            "error": f"user with username {user_info.username} does not exists or user has already been confirmed"
+        }, status_code=HTTPStatus.BAD_REQUEST)
+
+    correct_uuid = user_uuid[0]
 
     if correct_uuid == user_info.verification_code:
         stmt = update(User).where(UserVerifyingCode.username == user_info.username).values(
@@ -163,7 +184,14 @@ async def get_user_posts(username: str, sort: str, session: AsyncSession = Depen
 async def delete_user(user_info: UserDelete, session: AsyncSession = Depends(get_async_session)):
     query = select(User.password).where(User.username == user_info.username)
     db_info = await session.execute(query)
-    correct_pass = db_info.fetchone()[0]
+
+    user = db_info.fetchone()
+    if user is None:
+        return JSONResponse(content={
+            "error": f"user with username {user_info.username} does not exists"
+        }, status_code=HTTPStatus.BAD_REQUEST)
+
+    correct_pass = user[0]
     if user_info.password != correct_pass:
         return JSONResponse(content={"error": "password is incorrect"}, status_code=HTTPStatus.BAD_REQUEST)
 

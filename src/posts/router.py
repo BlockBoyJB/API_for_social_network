@@ -27,8 +27,13 @@ router = APIRouter(
 @log
 async def add_post(new_post: PostCreate, session: AsyncSession = Depends(get_async_session)):
     query = select(User.user_uuid, User.is_verified).where(User.username == new_post.author_username)
-    result = await session.execute(query)
-    user_uuid, status = result.all()[0]
+    db_info = await session.execute(query)
+    result = db_info.all()
+    if len(result) == 0:
+        return JSONResponse(content={
+            "error": f"user with username {new_post.author_username} does not exists"
+        }, status_code=HTTPStatus.BAD_REQUEST)
+    user_uuid, status = result[0]
 
     if status is False:
         return JSONResponse(content={"message": "user is not confirmed"}, status_code=HTTPStatus.FORBIDDEN)
@@ -63,7 +68,13 @@ async def add_post(new_post: PostCreate, session: AsyncSession = Depends(get_asy
 async def get_post(title: str, username: str, session: AsyncSession = Depends(get_async_session)):
     query = select(Post).where(Post.title == title, Post.username == username)
     user_info = await session.execute(query)
-    result: Post = user_info.fetchone()[0]
+
+    post = user_info.fetchone()
+    if post is None:
+        return JSONResponse(content={
+            "error": f"post with title {title} or username {username} does not exists"
+        }, status_code=HTTPStatus.BAD_REQUEST)
+    result: Post = post[0]
 
     query = select(Reaction.reaction).where(Reaction.post_uuid == result.post_uuid)
 
@@ -86,7 +97,13 @@ async def get_post(title: str, username: str, session: AsyncSession = Depends(ge
 async def delete_post(post_info: PostDelete, session: AsyncSession = Depends(get_async_session)):
     query = select(User.password).where(User.username == post_info.username)
     db_info = await session.execute(query)
-    if post_info.password != db_info.fetchone()[0]:
+    password = db_info.fetchone()
+    if password is None:
+        return JSONResponse(content={
+            "error": f"Post with author username {post_info.username} does not exists"
+        }, status_code=HTTPStatus.BAD_REQUEST)
+
+    if post_info.password != password[0]:
         return JSONResponse(content={"error": "password is incorrect"}, status_code=HTTPStatus.BAD_REQUEST)
 
     query = delete(Post).where(Post.title == post_info.title, Post.username == post_info.username)

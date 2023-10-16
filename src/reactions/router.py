@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 
 from http import HTTPStatus
 
@@ -27,7 +28,14 @@ async def add_reaction(new_reaction: ReactionCreate, session: AsyncSession = Dep
         Post.username == new_reaction.username, Post.title == new_reaction.title
     )
     db_info = await session.execute(query)
-    post_uuid: list = db_info.fetchone()[0]
+
+    post = db_info.fetchone()
+    if post is None:
+        return JSONResponse(content={
+            "error": f"post with title {new_reaction.title} or username {new_reaction.username} does not exists"
+        }, status_code=HTTPStatus.BAD_REQUEST)
+
+    post_uuid: list = post[0]
 
     stmt = update(User).where(User.username == new_reaction.username).values(
         total_reactions=User.total_reactions + 1

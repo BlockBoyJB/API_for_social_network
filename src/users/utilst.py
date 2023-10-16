@@ -8,7 +8,7 @@ from src.config import EMAIL_SEND_LOGIN, EMAIL_SEND_PASS
 class EmailCfg:
 
     @classmethod
-    def send_email(cls, uuid: str, email: str):
+    async def send_email(cls, uuid: str, email: str):
         server = SMTP("smtp.gmail.com", 587)
         server.starttls()
         server.login(user=EMAIL_SEND_LOGIN, password=EMAIL_SEND_PASS)
@@ -33,3 +33,15 @@ class EmailCfg:
             check_smtp=True,
             smtp_debug=False)
         return result
+
+
+async def check_username(username: str):
+    correct_symbols = "abcdefghijklmnopqrstuvwxyz0123456789_"
+    if len(username) < 3 or len(username) > 15:
+        return False
+    if len(username.split()) == 1 and username[0] == "@":
+        for sym in username[1:]:
+            if sym not in correct_symbols:
+                return False
+        return True
+    return False
