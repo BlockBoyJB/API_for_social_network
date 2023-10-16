@@ -33,7 +33,7 @@ async def add_post(new_post: PostCreate, session: AsyncSession = Depends(get_asy
     if status is False:
         return JSONResponse(content={"message": "user is not confirmed"}, status_code=HTTPStatus.FORBIDDEN)
 
-    query = select(Post.title).where(Post.title == new_post.title)
+    query = select(Post.title).where(Post.title == new_post.title, Post.username == new_post.author_username)
     result = await session.execute(query)
 
     if result.fetchone() is not None:

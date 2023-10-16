@@ -125,7 +125,7 @@ async def verify_user(user_info: UserVerify, session: AsyncSession = Depends(get
 @router.get("/user/posts")
 @log
 async def get_user_posts(username: str, sort: str, session: AsyncSession = Depends(get_async_session)):
-    if sort == "asc":
+    if sort == "desc":
         query = select(Post).where(Post.username == username).order_by(desc(Post.post_reactions))
 
     else:
@@ -153,7 +153,9 @@ async def get_user_posts(username: str, sort: str, session: AsyncSession = Depen
             "reactions": curr_reactions,
         })
 
-    return JSONResponse(content={f"posts {username}": result}, status_code=HTTPStatus.OK)
+    return JSONResponse(content={
+        f"posts {username}. Sort type {'desc' if sort == 'desc' else 'asc'}": result
+    }, status_code=HTTPStatus.OK)
 
 
 @router.delete("/user/delete")
