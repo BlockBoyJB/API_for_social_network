@@ -261,4 +261,4 @@ http://localhost:8080/leaderboard/graph
 ###### response:
 `to see the graph, you need to make a request in the browser`<br>
 
-![](static\leaderboard.png)
+![](static/leaderboard.png)
