@@ -1,7 +1,14 @@
-# API for social network v2.0
+# API for social network v3.0
 # Documentation
 
-#### функционал api:
+#### что нового в v3.0:
+1) Полностью новая структура проекта
+2) Переход от sqlite3 к postgreSQL
+3) Добавлены миграции для БД
+4) Работа с БД организована с помощью sqlalchemy вместо сырых sql запросов, которые были в v2.0
+5) Переход от Flask к асинхронному коду FastAPI
+
+### функционал api:
 - Создает пользователя (проверяет почту на правильность), который может писать посты, ставить реакции (heart, like, dislike, boom, ...) на посты других пользователей.
 Также после создания на указанную почту приходит письмо с кодом подтверждения. Пользователь с неподтвержденной почтой не может создавать посты
 - Выдает данные по конкретному пользователю
@@ -25,7 +32,8 @@
   "first_name": "string",
   "last_name": "string",
   "email": "string",
-  "username": "string"
+  "username": "string",
+  "password": "string"
 }
 ```
 ###### response:
@@ -35,8 +43,6 @@
   "first_name": "string",
   "last_name": "string",
   "email": "string",
-  "total_reactions": 0,
-  "posts": [],
   "user_id": "string",
   "status": "unconfirmed",
   "message": "check_your_email"
@@ -47,16 +53,9 @@
 `GET /users/user`
 
 ###### request:
-```json
-{
-  "username": "string"
-}
-```
-or
-```json
-{
-  "user_id": "string"
-}
+
+```http request
+http://localhost:8000/users/user?username=username
 ```
 
 ###### response:
@@ -67,8 +66,8 @@ or
   "last_name": "string",
   "email": "string",
   "total_reactions": "number",
-  "status": "number",
-  "uuid": "string"
+  "status": "confirmed/unconfirmed",
+  "user_uuid": "string"
 }
 ```
 
@@ -79,7 +78,7 @@ or
 ```json
 {
   "username": "string",
-  "code": "string"
+  "verification_code": "string"
 }
 ```
 
@@ -96,20 +95,15 @@ or
 ###### request:
 ```json
 {
-  "user_id": "string"
-}
-```
-or 
-```json
-{
-  "username": "string"
+  "username": "string",
+  "password": "string"
 }
 ```
 
 ###### response:
 ```json
 {
-  "message": "post deleted successfully"
+  "message": "user successfully delete"
 }
 ```
 
@@ -119,9 +113,9 @@ or
 ###### request:
 ```json
 {
-  "username": "string",
   "title": "string",
-  "text": "string"
+  "author_username": "string",
+  "post_text": "string"
 }
 ```
 
@@ -130,7 +124,6 @@ or
 {
   "title": "string",
   "username": "string",
-  "reactions": [],
   "text": "string"
 }
 ```
@@ -139,17 +132,8 @@ or
 `GET /posts/post`
 
 ###### request:
-```json
-{
-  "username": "string",
-  "title": "string"
-}
-```
-or
-```json
-{
-  "post_id": "string"
-}
+```http request
+http://localhost:8000/posts/post?title=title&username=username
 ```
 
 ###### response:
@@ -157,11 +141,11 @@ or
 {
   "title": "string",
   "author_username": "string",
-  "post_id": "string",
   "text": "string",
+  "post_uuid": "string",
   "reactions": [
     "string",
-    "string",
+    "string", 
     "other_reactions..."
   ]
 }
@@ -173,48 +157,32 @@ or
 ###### request:
 ```json
 {
-  "post_id": "string"
-}
-```
-or
-```json
-{
   "title": "string",
-  "username": "string"
+  "username": "string",
+  "password": "string"
 }
 ```
 
 ###### response:
 ```json
 {
-  "message": "post deleted successfully"
+  "message": "post successfully delete"
 }
 ```
 
 
-- **Поставить реакцию посту** 
+- **Поставить реакцию посту**
 `POST /posts/post/reaction`
 
 ###### request:
 ```json
 {
-  "reaction": "string",
+  "title": "string",
   "username": "string",
-  "title": "string"
-}
-```
-or
-```json
-{
-  "reaction": "string",
-  "post_id": "string"
+  "reaction": "string"
 }
 ```
 
-###### response
-```
-{}
-```
 
 - **Получение всех постов пользователя, отсортированных по количеству реакций** 
 `GET /users/user/posts`
@@ -223,78 +191,74 @@ or
 `desc` обозначет `descending` (по убыванию)
 
 ###### request:
-```json
-{
-  "sort": "asc/desc",
-  "username": "string"
-}
-```
-or
-```json
-{
-  "sort": "asc/desc",
-  "user_id": "string"
-}
+```http request
+http://localhost:8000/users/user/posts?username=username&sort=sort
 ```
 
 ###### response:
 ```json
 {
-	"posts": [
-    	{
-  			"username": "string",
-  			"title": "string",
-  			"post_id": "string",
-            "text": "string",
-  			"reactions": [
-  				"string",
-    			"other_reactions..."
-  			] 
-  		},
-        {
-        	"other_posts": "..."
-        }
-    ]
+  "posts {username}. Sort type {sort type}": [
+    {
+      "title": "string",
+      "author_username": "string",
+      "post_uuid": "string",
+      "text": "string",
+      "reactions": [
+        "reaction1",
+        "reaction2",
+        "other reactions"
+      ]
+    },
+    {
+      "other_posts": "..."
+    }
+  ]
 }
 ```
 
 - **Получение всех пользователей, отсортированных по количеству реакций** 
-`GET /users/leaderboard`
+`GET /leaderboard/list`
 
 `asc` обозначет `ascending` (по возрастанию)<br>
 `desc` обозначет `descending` (по убыванию)
 
 ###### request:
-```json
-{
-  "type": "list",
-  "sort": "asc/desc"
-}
+```http request
+http://localhost:8000/leaderboard/list?sort=sort
 ```
 
 ###### response:
 ```json
 {
-	"users": [
-    	"1 - {username}, reactions - {num of reactions}",
-        "2 - ..."
-    ]
+  "leaderboard sort type {sort type}": [
+    {
+      "place": 1,
+      "username": "string",
+      "total_reactions": "number"
+    },
+    {
+      "place": 2,
+      "username": "string",
+      "total_reactions": "number"
+    },
+    {
+      "other_users": "..."
+    }
+  ]
 }
 ```
 
 - **Получение графика пользователей по количеству реакций** 
-`GET /users/leaderboard` (также можно указать тип сортировки)
+`GET /leaderboard/graph`
 
 
 ###### request:
-```json
-{
-  "type": "graph",
-  "sort": "asc/desc"
-}
+```http request
+http://localhost:8080/leaderboard/graph
 ```
 
 ###### response:
-```html
-<img src="leaderboard.png">
-```
+`to see the graph, you need to make a request in the browser`<br>
+
+![](static\leaderboard.png)
