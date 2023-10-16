@@ -1,5 +1,7 @@
+"""
+Checking the correctness of the username and email
+"""
 from email_validate import validate
-# взято из: https://docs-python.ru/packages/modul-validate-email-python/
 
 
 def check_email(email):

@@ -1,0 +1,31 @@
+drop table if exists users;
+drop table if exists posts;
+drop table if exists reactions;
+drop table if exists verification_codes;
+
+create table users (
+    first_name text not null,
+    last_name text not null,
+    email text unique not null,
+    username text unique not null ,
+    total_reactions int not null ,
+    status int not null ,
+    user_uuid text unique not null
+);
+
+create table posts (
+    title text not null ,
+    author_username text references users(username) null ,
+    post_text text not null,
+    post_id text unique not null
+);
+
+create table reactions (
+    name text not null ,
+    post_id text references posts(post_id) not null
+);
+
+create table verification_codes (
+    username text unique not null ,
+    code text unique not null
+)
