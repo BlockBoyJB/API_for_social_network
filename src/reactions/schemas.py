@@ -5,4 +5,3 @@ class ReactionCreate(BaseModel):
     title: str
     username: str
     reaction: str
-

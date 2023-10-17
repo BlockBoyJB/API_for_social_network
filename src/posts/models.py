@@ -1,9 +1,8 @@
+from sqlalchemy import ARRAY, Column, ForeignKey, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import DeclarativeMeta
-from sqlalchemy import Column, Integer, String, ARRAY, Text, ForeignKey
 
 from src.users.models import User
-
 
 Base: DeclarativeMeta = declarative_base()
 

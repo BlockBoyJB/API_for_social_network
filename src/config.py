@@ -1,6 +1,8 @@
-from dotenv import load_dotenv
 import os
-from polog import config as cfg, file_writer
+
+from dotenv import load_dotenv
+from polog import config as cfg
+from polog import file_writer
 
 load_dotenv()
 

@@ -1,14 +1,12 @@
 import uvicorn
 from fastapi import FastAPI
 
-from posts.router import router as posts_router
-from users.router import router as users_router
-from reactions.router import router as reactions_router
 from leaderboard.router import router as leaderboard_router
+from posts.router import router as posts_router
+from reactions.router import router as reactions_router
+from users.router import router as users_router
 
-app = FastAPI(
-    title="API for Social Network"
-)
+app = FastAPI(title="API for Social Network")
 
 app.include_router(users_router)
 
