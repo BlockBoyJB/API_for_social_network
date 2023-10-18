@@ -22,58 +22,64 @@ router = APIRouter(prefix="/users", tags=["User"])
 @router.post("/user/create")
 @log
 async def add_user(
-    new_user: UserCreate, session: AsyncSession = Depends(get_async_session)
+        new_user: UserCreate
 ):
+    session = await get_async_session()
     user_uuid: str = str(uuid4())
 
-    result = await new_user.validate_username(new_user.username)
-    if result is False:
+    if await new_user.validate_username(new_user.username) is False:
         return JSONResponse(
             content={
                 "error": "entered username is incorrect. Enter another one. "
-                "Username can consist only of lowercase Latin characters and numbers, and also have the _ symbol. "
-                "The username must necessarily start with @. Maximum allowed length is 15 characters, minimun - 3"
+                         "Username can consist only of lowercase Latin characters and numbers, and also have the _ "
+                         "symbol. The username must necessarily start with @. Maximum allowed length is 15 characters, "
+                         "minimun - 3"
             },
-            status_code=HTTPStatus.BAD_REQUEST,
+            status_code=HTTPStatus.BAD_REQUEST
         )
 
-    result = await new_user.validate_email(new_user.email)
-    if result is False:
+    if await new_user.validate_email(new_user.email) is False:
         return JSONResponse(
             content={
-                "error": f"current email {new_user.email} is incorrect. Enter another one",
+                "error": f"current email {new_user.email} is incorrect. Enter another one"
             },
-            status_code=HTTPStatus.BAD_REQUEST,
+            status_code=HTTPStatus.BAD_REQUEST
         )
 
-    try:
-        sqmt = insert(User).values(
-            username=new_user.username,
-            first_name=new_user.first_name,
-            last_name=new_user.last_name,
-            password=new_user.password,
-            email=new_user.email,
-            user_uuid=user_uuid,
-        )
-        await session.execute(sqmt)
-        await session.commit()
-
-    except IntegrityError:
+    if await session["user"].find_one({"username": new_user.username}):
         return JSONResponse(
             content={
-                "message": "current username or email is busy. Please, enter another one"
+                "error": "current username is busy. Please, enter another one"
             },
-            status_code=HTTPStatus.BAD_REQUEST,
+            status_code=HTTPStatus.BAD_REQUEST
         )
 
-    sqmt = insert(UserVerifyingCode).values(
-        username=new_user.username,
-        verifying_uuid=user_uuid,
+    if await session["user"].find_one({"email": new_user.email}):
+        return JSONResponse(
+            content={
+                "error": "current email adress is busy. Please, enter another one"
+            },
+            status_code=HTTPStatus.BAD_REQUEST
+        )
+
+    data = new_user.dict()
+
+    data["user_uuid"] = user_uuid
+    data["is_verified"] = False
+    data["putted_reactions"] = 0
+    data["received_reactions"] = 0
+
+    await session["user"].insert_one(data)
+
+    verification_uuid = str(uuid4())
+    await session["user_verification_code"].insert_one(
+        {
+            "username": new_user.username,
+            "verification_code": verification_uuid,
+        }
     )
-    await session.execute(sqmt)
-    await session.commit()
 
-    await EmailCfg.send_email(uuid=user_uuid, email=new_user.email)
+    await EmailCfg.send_email(uuid=verification_uuid, email=new_user.email)
 
     return JSONResponse(
         content={
@@ -82,37 +88,29 @@ async def add_user(
             "last_name": new_user.last_name,
             "email": new_user.email,
             "user_uuid": user_uuid,
-            "status": "unconfirmed",
-            "message": "check email",
         },
-        status_code=HTTPStatus.CREATED,
+        status_code=HTTPStatus.CREATED
     )
 
 
 @router.get("/user")
 @log
-async def get_user(username: str, session: AsyncSession = Depends(get_async_session)):
-    query = select(User).where(User.username == username)
-    user_info = await session.execute(query)
+async def get_user(
+        username: str
+):
+    session = await get_async_session()
+    user: dict = await session["user"].find_one({"username": username})
+    if user:
+        del user["_id"]
+        del user["password"]
+        return JSONResponse(content=user, status_code=HTTPStatus.OK)
 
-    user = user_info.fetchone()
-    if user is None:
-        return JSONResponse(
-            content={"error": f"user with username {username} does not exists"},
-            status_code=HTTPStatus.BAD_REQUEST,
-        )
-
-    result: User = user[0]
-    data = {
-        "username": result.username,
-        "first_name": result.first_name,
-        "last_name": result.last_name,
-        "email": result.email,
-        "total_reactions": result.total_reactions,
-        "user_status": "unconfirmed" if result.is_verified is False else "confirmed",
-        "user_uuid": result.user_uuid,
-    }
-    return JSONResponse(content=data, status_code=HTTPStatus.OK)
+    return JSONResponse(
+        content={
+            "error": f"user with username {username} does not exists"
+        },
+        status_code=HTTPStatus.BAD_REQUEST
+    )
 
 
 @router.post("/user/verify")
