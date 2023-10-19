@@ -21,9 +21,7 @@ router = APIRouter(prefix="/users", tags=["User"])
 
 @router.post("/user/create")
 @log
-async def add_user(
-        new_user: UserCreate
-):
+async def add_user(new_user: UserCreate):
     session = await get_async_session()
     user_uuid: str = str(uuid4())
 
@@ -31,11 +29,11 @@ async def add_user(
         return JSONResponse(
             content={
                 "error": "entered username is incorrect. Enter another one. "
-                         "Username can consist only of lowercase Latin characters and numbers, and also have the _ "
-                         "symbol. The username must necessarily start with @. Maximum allowed length is 15 characters, "
-                         "minimun - 3"
+                "Username can consist only of lowercase Latin characters and numbers, and also have the _ "
+                "symbol. The username must necessarily start with @. Maximum allowed length is 15 characters, "
+                "minimun - 3"
             },
-            status_code=HTTPStatus.BAD_REQUEST
+            status_code=HTTPStatus.BAD_REQUEST,
         )
 
     if await new_user.validate_email(new_user.email) is False:
@@ -43,15 +41,13 @@ async def add_user(
             content={
                 "error": f"current email {new_user.email} is incorrect. Enter another one"
             },
-            status_code=HTTPStatus.BAD_REQUEST
+            status_code=HTTPStatus.BAD_REQUEST,
         )
 
     if await session["user"].find_one({"username": new_user.username}):
         return JSONResponse(
-            content={
-                "error": "current username is busy. Please, enter another one"
-            },
-            status_code=HTTPStatus.BAD_REQUEST
+            content={"error": "current username is busy. Please, enter another one"},
+            status_code=HTTPStatus.BAD_REQUEST,
         )
 
     if await session["user"].find_one({"email": new_user.email}):
@@ -59,7 +55,7 @@ async def add_user(
             content={
                 "error": "current email adress is busy. Please, enter another one"
             },
-            status_code=HTTPStatus.BAD_REQUEST
+            status_code=HTTPStatus.BAD_REQUEST,
         )
 
     data = new_user.dict()
@@ -88,16 +84,16 @@ async def add_user(
             "last_name": new_user.last_name,
             "email": new_user.email,
             "user_uuid": user_uuid,
+            "status": "unconfirmed",
+            "message": "check_email",
         },
-        status_code=HTTPStatus.CREATED
+        status_code=HTTPStatus.CREATED,
     )
 
 
 @router.get("/user")
 @log
-async def get_user(
-        username: str
-):
+async def get_user(username: str):
     session = await get_async_session()
     user: dict = await session["user"].find_one({"username": username})
     if user:
@@ -106,61 +102,41 @@ async def get_user(
         return JSONResponse(content=user, status_code=HTTPStatus.OK)
 
     return JSONResponse(
-        content={
-            "error": f"user with username {username} does not exists"
-        },
-        status_code=HTTPStatus.BAD_REQUEST
+        content={"error": f"user with username {username} does not exists"},
+        status_code=HTTPStatus.BAD_REQUEST,
     )
 
 
 @router.post("/user/verify")
 @log
-async def verify_user(
-    user_info: UserVerify, session: AsyncSession = Depends(get_async_session)
-):
-    query = select(UserVerifyingCode.verifying_uuid).where(
-        UserVerifyingCode.username == user_info.username
+async def verify_user(user_info: UserVerify):
+    session = await get_async_session()
+    correct_code = await session["user_verification_code"].find_one(
+        {"username": user_info.username}, {"verification_code": 1}
     )
-    db_info = await session.execute(query)
-
-    user_uuid = db_info.fetchone()
-    if user_uuid is None:
+    if correct_code is None:
         return JSONResponse(
             content={
-                "error": f"user with username {user_info.username} does not exists or user has already been confirmed"
+                "error": f"user with username {user_info.username} does not exists or user is already verified"
             },
             status_code=HTTPStatus.BAD_REQUEST,
         )
 
-    correct_uuid = user_uuid[0]
-
-    if correct_uuid == user_info.verification_code:
-        stmt = (
-            update(User)
-            .where(UserVerifyingCode.username == user_info.username)
-            .values(is_verified=True)
-        )
-        await session.execute(stmt)
-        await session.commit()
-
-        query = delete(UserVerifyingCode).where(
-            UserVerifyingCode.username == user_info.username
-        )
-        await session.execute(query)
-        await session.commit()
-
+    if user_info.verification_code != correct_code["verification_code"]:
         return JSONResponse(
-            content={
-                "message": f"user with username {user_info.username} successfully confirmed",
-            },
-            status_code=HTTPStatus.OK,
+            content={"error": "Current verification code is incorrect"},
+            status_code=HTTPStatus.UNAUTHORIZED,
         )
 
+    await session["user_verification_code"].delete_one({"username": user_info.username})
+    await session["user"].update_one(
+        {"username": user_info.username}, {"$set": {"is_verified": True}}
+    )
     return JSONResponse(
         content={
-            "message": "verification code is incorrect",
+            "message": f"user with username {user_info.username} successfully confirmed"
         },
-        status_code=HTTPStatus.UNAUTHORIZED,
+        status_code=HTTPStatus.OK,
     )
 
 
@@ -217,14 +193,12 @@ async def get_user_posts(
 
 @router.delete("/user/delete")
 @log
-async def delete_user(
-    user_info: UserDelete, session: AsyncSession = Depends(get_async_session)
-):
-    query = select(User.password).where(User.username == user_info.username)
-    db_info = await session.execute(query)
-
-    user = db_info.fetchone()
-    if user is None:
+async def delete_user(user_info: UserDelete):
+    session = await get_async_session()
+    correct_pass = await session["user"].find_one(
+        {"username": user_info.username}, {"password": 1}
+    )
+    if correct_pass is None:
         return JSONResponse(
             content={
                 "error": f"user with username {user_info.username} does not exists"
@@ -232,17 +206,15 @@ async def delete_user(
             status_code=HTTPStatus.BAD_REQUEST,
         )
 
-    correct_pass = user[0]
-    if user_info.password != correct_pass:
+    if user_info.password != correct_pass["password"]:
         return JSONResponse(
-            content={"error": "password is incorrect"},
+            content={"error": "user password is incorrect"},
             status_code=HTTPStatus.BAD_REQUEST,
         )
 
-    stmt = delete(User).where(User.username == user_info.username)
-    await session.execute(stmt)
-    await session.commit()
+    await session["user"].delete_one({"username": user_info.username})
 
     return JSONResponse(
-        content={"message": "user successfully delete"}, status_code=HTTPStatus.ACCEPTED
+        content={"message": "user successfully delete"},
+        status_code=HTTPStatus.ACCEPTED,
     )
