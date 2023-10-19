@@ -48,9 +48,13 @@ async def list_leaderboard(sort: str):
         .to_list(length=None)
     )
     all_users = []
-    for user in users:
-        del user["_id"]
-        all_users.append(user)
+    for i in range(len(users)):
+        del users[i]["_id"]
+        all_users.append({
+            "place": i + 1,
+            "username": users[i]["username"],
+            "total_reactions": users[i]["total_reactions"]
+        })
 
     return JSONResponse(
         content={
