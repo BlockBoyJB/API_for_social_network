@@ -1,4 +1,9 @@
 from smtplib import SMTP
+from http import HTTPStatus
+
+from fastapi.responses import JSONResponse
+
+from motor.core import AgnosticDatabase
 
 from src.config import EMAIL_SEND_LOGIN, EMAIL_SEND_PASS
 
@@ -24,3 +29,25 @@ class EmailCfg:
             msg=f"Subject: {subject}\n{text}",
         )
         server.quit()
+
+
+class DeleteCfg:
+    @classmethod
+    async def check_pass(cls, username: str, password: str, session: AgnosticDatabase):
+        correct_pass = await session["user"].find_one(
+            {"username": username}, {"password": 1}
+        )
+        if correct_pass is None:
+            return JSONResponse(
+                content={
+                    "error": f"user with username {username} does not exists"
+                },
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+
+        if password != correct_pass["password"]:
+            return JSONResponse(
+                content={"error": "incorrect password"},
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+        return True
