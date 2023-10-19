@@ -14,7 +14,7 @@ from src.reactions.models import Reaction
 from src.reactions.utils import get_all_reactions
 from src.users.models import User, UserVerifyingCode
 from src.users.schemas import UserCreate, UserDelete, UserVerify
-from src.users.utilst import EmailCfg
+from src.users.utilst import EmailCfg, DeleteCfg
 
 router = APIRouter(prefix="/users", tags=["User"])
 
@@ -195,26 +195,16 @@ async def get_user_posts(
 @log
 async def delete_user(user_info: UserDelete):
     session = await get_async_session()
-    correct_pass = await session["user"].find_one(
-        {"username": user_info.username}, {"password": 1}
+    result = await DeleteCfg.check_pass(
+        username=user_info.username,
+        password=user_info.password,
+        session=session,
     )
-    if correct_pass is None:
+    if result is True:
+        await session["user"].delete_one({"username": user_info.username})
+
         return JSONResponse(
-            content={
-                "error": f"user with username {user_info.username} does not exists"
-            },
-            status_code=HTTPStatus.BAD_REQUEST,
+            content={"message": "user successfully delete"},
+            status_code=HTTPStatus.ACCEPTED,
         )
-
-    if user_info.password != correct_pass["password"]:
-        return JSONResponse(
-            content={"error": "user password is incorrect"},
-            status_code=HTTPStatus.BAD_REQUEST,
-        )
-
-    await session["user"].delete_one({"username": user_info.username})
-
-    return JSONResponse(
-        content={"message": "user successfully delete"},
-        status_code=HTTPStatus.ACCEPTED,
-    )
+    return result
