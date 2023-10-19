@@ -1,14 +1,11 @@
 from http import HTTPStatus
 
 import matplotlib.pyplot as plt
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from fastapi.responses import FileResponse, JSONResponse
-from sqlalchemy import desc, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from polog import log
 
 from src.database import get_async_session
-from src.users.models import User
 
 router = APIRouter(prefix="/leaderboard", tags=["Leaderboard"])
 

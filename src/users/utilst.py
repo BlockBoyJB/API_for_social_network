@@ -1,8 +1,7 @@
-from smtplib import SMTP
 from http import HTTPStatus
+from smtplib import SMTP
 
 from fastapi.responses import JSONResponse
-
 from motor.core import AgnosticDatabase
 
 from src.config import EMAIL_SEND_LOGIN, EMAIL_SEND_PASS
@@ -39,9 +38,7 @@ class DeleteCfg:
         )
         if correct_pass is None:
             return JSONResponse(
-                content={
-                    "error": f"user with username {username} does not exists"
-                },
+                content={"error": f"user with username {username} does not exists"},
                 status_code=HTTPStatus.BAD_REQUEST,
             )
 

@@ -1,20 +1,13 @@
 from http import HTTPStatus
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from polog import log
-from sqlalchemy import delete, desc, insert, select, update
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_async_session
-from src.posts.models import Post
-from src.reactions.models import Reaction
-from src.reactions.utils import get_all_reactions
-from src.users.models import User, UserVerifyingCode
 from src.users.schemas import UserCreate, UserDelete, UserVerify
-from src.users.utilst import EmailCfg, DeleteCfg
+from src.users.utilst import DeleteCfg, EmailCfg
 
 router = APIRouter(prefix="/users", tags=["User"])
 

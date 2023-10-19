@@ -1,17 +1,12 @@
 from http import HTTPStatus
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from polog import log
-from sqlalchemy import delete, insert, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_async_session
-from src.posts.models import Post
 from src.posts.schemas import PostCreate, PostDelete
-from src.reactions.models import Reaction
-from src.reactions.utils import get_all_reactions
 from src.users.utilst import DeleteCfg
 
 router = APIRouter(prefix="/posts", tags=["Post"])
