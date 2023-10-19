@@ -1,13 +1,11 @@
 # API for social network v3.0
 # Documentation
 
-#### что нового в v3.0:
-1) Полностью новая структура проекта
-2) Переход от sqlite3 к postgreSQL
-3) Добавлены миграции для БД
-4) Работа с БД организована с помощью sqlalchemy вместо сырых sql запросов, которые были в v2.0
-5) Переход от Flask к асинхронному коду FastAPI
 
+#### что нового в v3.1:
+- Смена postgreSQL на nosql базу данных - MongoDB
+
+###### v3.1 это лишь альтернатива проекту 3.0 версии, тк кроме перехода к другой базе данных ничего не изменилось (не считая некоторых запросов)
 ### функционал api:
 - Создает пользователя (проверяет почту на правильность), который может писать посты, ставить реакции (heart, like, dislike, boom, ...) на посты других пользователей.
 Также после создания на указанную почту приходит письмо с кодом подтверждения. Пользователь с неподтвержденной почтой не может создавать посты
@@ -114,7 +112,7 @@ http://localhost:8000/users/user?username=username
 ```json
 {
   "title": "string",
-  "author_username": "string",
+  "username": "string",
   "post_text": "string"
 }
 ```
@@ -124,7 +122,8 @@ http://localhost:8000/users/user?username=username
 {
   "title": "string",
   "username": "string",
-  "text": "string"
+  "text": "string",
+  "post_uuid": "string"
 }
 ```
 
@@ -157,7 +156,7 @@ http://localhost:8000/posts/post?title=title&username=username
 ###### request:
 ```json
 {
-  "title": "string",
+  "post_uuid": "string",
   "username": "string",
   "password": "string"
 }
@@ -177,7 +176,7 @@ http://localhost:8000/posts/post?title=title&username=username
 ###### request:
 ```json
 {
-  "title": "string",
+  "post_uuid": "string",
   "username": "string",
   "reaction": "string"
 }
