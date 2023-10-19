@@ -12,63 +12,44 @@ from src.posts.models import Post
 from src.posts.schemas import PostCreate, PostDelete
 from src.reactions.models import Reaction
 from src.reactions.utils import get_all_reactions
-from src.users.models import User
+from src.users.utilst import DeleteCfg
 
 router = APIRouter(prefix="/posts", tags=["Post"])
 
 
 @router.post("/post/create")
 @log
-async def add_post(
-    new_post: PostCreate, session: AsyncSession = Depends(get_async_session)
-):
-    query = select(User.user_uuid, User.is_verified).where(
-        User.username == new_post.author_username
+async def add_post(new_post: PostCreate):
+    session = await get_async_session()
+    post_uuid = str(uuid4())
+    user_info = await session["user"].find_one(
+        {"username": new_post.username}, {"is_verified": 1, "user_uuid": 2}
     )
-    db_info = await session.execute(query)
-    result = db_info.all()
-    if len(result) == 0:
+    if user_info is None:
         return JSONResponse(
             content={
-                "error": f"user with username {new_post.author_username} does not exists"
+                "error": f"user with username {new_post.username} does not exists"
             },
             status_code=HTTPStatus.BAD_REQUEST,
         )
-    user_uuid, status = result[0]
 
-    if status is False:
+    if user_info["is_verified"] is False:
         return JSONResponse(
-            content={"message": "user is not confirmed"},
+            content={"error": "user is not confirmed"},
             status_code=HTTPStatus.FORBIDDEN,
         )
 
-    query = select(Post.title).where(
-        Post.title == new_post.title, Post.username == new_post.author_username
-    )
-    result = await session.execute(query)
+    data = new_post.dict()
+    data["post_uuid"] = post_uuid
+    data["user_uuid"] = user_info["user_uuid"]
+    data["reactions"] = []
 
-    if result.fetchone() is not None:
-        return JSONResponse(
-            content={
-                "message": f"post with title {new_post.title} is already exists in user posts. Please, enter another one"
-            },
-            status_code=HTTPStatus.BAD_REQUEST,
-        )
+    await session["post"].insert_one(data)
 
-    sqmt = insert(Post).values(
-        title=new_post.title,
-        username=new_post.author_username,
-        post_text=new_post.post_text,
-        user_uuid=user_uuid,
-        post_uuid=str(uuid4()),
-    )
-
-    await session.execute(sqmt)
-    await session.commit()
     return JSONResponse(
         content={
             "title": new_post.title,
-            "username": new_post.author_username,
+            "username": new_post.username,
             "text": new_post.post_text,
         },
         status_code=HTTPStatus.CREATED,
@@ -77,66 +58,59 @@ async def add_post(
 
 @router.get("/post")
 @log
-async def get_post(
-    title: str, username: str, session: AsyncSession = Depends(get_async_session)
-):
-    query = select(Post).where(Post.title == title, Post.username == username)
-    user_info = await session.execute(query)
+async def get_post(title: str, username: str):
+    session = await get_async_session()
+    all_posts = []
 
-    post = user_info.fetchone()
-    if post is None:
+    db_info = (
+        await session["post"]
+        .find({"title": title, "username": username})
+        .to_list(length=None)
+    )
+    if len(db_info) == 0:
         return JSONResponse(
             content={
-                "error": f"post with title {title} or username {username} does not exists"
+                "error": f"posts with title '{title}' or author username {username} does not exists"
             },
             status_code=HTTPStatus.BAD_REQUEST,
         )
-    result: Post = post[0]
 
-    query = select(Reaction.reaction).where(Reaction.post_uuid == result.post_uuid)
+    for post in db_info:
+        del post["_id"]
+        del post["user_uuid"]
+        all_posts.append(post)
 
-    db_info = await session.execute(query)
-
-    reactions = await get_all_reactions(db_info.fetchall())
-
-    data = {
-        "title": result.title,
-        "author_username": result.username,
-        "text": result.post_text,
-        "post_uuid": result.post_uuid,
-        "reactions": reactions,
-    }
-    return JSONResponse(content=data, status_code=HTTPStatus.OK)
+    return JSONResponse(
+        content={f"post with title '{title}' user {username}": all_posts},
+        status_code=HTTPStatus.OK,
+    )
 
 
 @router.delete("/post/delete")
 @log
-async def delete_post(
-    post_info: PostDelete, session: AsyncSession = Depends(get_async_session)
-):
-    query = select(User.password).where(User.username == post_info.username)
-    db_info = await session.execute(query)
-    password = db_info.fetchone()
-    if password is None:
-        return JSONResponse(
-            content={
-                "error": f"Post with author username {post_info.username} does not exists"
-            },
-            status_code=HTTPStatus.BAD_REQUEST,
-        )
-
-    if post_info.password != password[0]:
-        return JSONResponse(
-            content={"error": "password is incorrect"},
-            status_code=HTTPStatus.BAD_REQUEST,
-        )
-
-    query = delete(Post).where(
-        Post.title == post_info.title, Post.username == post_info.username
+async def delete_post(post_info: PostDelete):
+    session = await get_async_session()
+    result = await DeleteCfg.check_pass(
+        username=post_info.username,
+        password=post_info.password,
+        session=session,
     )
-    await session.execute(query)
-    await session.commit()
+    if result is True:
+        post = await session["post"].find_one(
+            {"post_uuid": post_info.post_uuid}, {"post_uuid": 1}
+        )
+        if post is None:
+            return JSONResponse(
+                content={
+                    "error": f"post with uuid '{post_info.post_uuid}' does not exists"
+                },
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
 
-    return JSONResponse(
-        content={"message": "post successfully delete"}, status_code=HTTPStatus.ACCEPTED
-    )
+        await session["post"].delete_one({"post_uuid": post["post_uuid"]})
+
+        return JSONResponse(
+            content={"message": "post deleted successfully"},
+            status_code=HTTPStatus.ACCEPTED,
+        )
+    return result

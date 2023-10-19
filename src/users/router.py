@@ -142,46 +142,25 @@ async def verify_user(user_info: UserVerify):
 
 @router.get("/user/posts")
 @log
-async def get_user_posts(
-    username: str, sort: str, session: AsyncSession = Depends(get_async_session)
-):
-    if sort == "desc":
-        query = (
-            select(Post)
-            .where(Post.username == username)
-            .order_by(desc(Post.post_reactions))
+async def get_user_posts(username: str, sort: str):
+    session = await get_async_session()
+    posts = (
+        await session["post"]
+        .find({"username": username}, {"title": 1, "post_text": 2, "reactions": 3})
+        .sort("reactions", (-1 if sort == "desc" else 1))
+        .to_list(length=None)
+    )
+
+    if len(posts) == 0:
+        return JSONResponse(
+            content={"error": "no posts"},
+            status_code=HTTPStatus.BAD_REQUEST,
         )
-
-    else:
-        query = (
-            select(Post).where(Post.username == username).order_by(Post.post_reactions)
-        )
-
-    db_info = await session.execute(query)
-
-    posts = db_info.all()
-
     result = []
+
     for post in posts:
-        curr_post: Post = post[0]
-
-        query = select(Reaction.reaction).where(
-            Reaction.post_uuid == curr_post.post_uuid
-        )
-
-        db_info = await session.execute(query)
-
-        curr_reactions = await get_all_reactions(db_info.fetchall())
-
-        result.append(
-            {
-                "title": curr_post.title,
-                "author_username": curr_post.username,
-                "post_uuid": curr_post.post_uuid,
-                "text": curr_post.post_text,
-                "reactions": curr_reactions,
-            }
-        )
+        del post["_id"]
+        result.append(post)
 
     return JSONResponse(
         content={
