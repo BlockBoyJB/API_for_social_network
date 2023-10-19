@@ -62,8 +62,7 @@ async def add_user(new_user: UserCreate):
 
     data["user_uuid"] = user_uuid
     data["is_verified"] = False
-    data["putted_reactions"] = 0
-    data["received_reactions"] = 0
+    data["total_reactions"] = 0
 
     await session["user"].insert_one(data)
 

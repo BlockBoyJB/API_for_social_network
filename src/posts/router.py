@@ -51,6 +51,7 @@ async def add_post(new_post: PostCreate):
             "title": new_post.title,
             "username": new_post.username,
             "text": new_post.post_text,
+            "post_uuid": post_uuid,
         },
         status_code=HTTPStatus.CREATED,
     )

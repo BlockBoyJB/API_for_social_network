@@ -2,6 +2,6 @@ from pydantic import BaseModel
 
 
 class ReactionCreate(BaseModel):
-    title: str
+    post_uuid: str
     username: str
     reaction: str
